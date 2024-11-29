@@ -25,7 +25,7 @@
             v-bind="getComponentProps(field)"
           >
             <el-option
-              v-if="field === 'roleId'"
+              v-if="field === 'inviterRoleId'"
               v-for="(label, value) in roleIdMapping"
               :key="value"
               :label="label"
@@ -98,6 +98,7 @@ const props = defineProps({
 
 // 定义角色 ID 映射
 const roleIdMapping = {
+  0: '无',
   4: '高阶学员',
   5: '中阶学员',
   6: '初阶学员',
@@ -106,39 +107,39 @@ const roleIdMapping = {
 // 定义字段中文名称
 const fieldLabels = {
   regionName: '区域',
-  fullname: '姓名',
-  currency: '币种',
+  userFullname: '姓名',
+  currencyName: '币种',
   paymentDate: '付款日期',
   paymentAmount: '支付金额',
   fee: '手续费',
   actual: '实收金额',
   rate: '分佣比率',
   profit: '分佣',
-  totalProjectAmount: '项目总金额',
-  totalPaymentAmount: '已缴纳学费',
+  projectName: '项目名称',
+  projectAmount: '项目金额',
   inviterFullname: '邀请人姓名',
-  roleId: '邀请人角色',
+  inviterRoleId: '邀请人角色',
 }
 
 // 定义要显示的字段
 const displayFields = [
   'regionName',
-  'fullname',
-  'currency',
+  'userFullname',
+  'currencyName',
+  'paymentDate',
+  'projectName',
+  'projectAmount',
+  'paymentAmount',
+  'fee',
+  'actual',
   'profit',
   'rate',
-  'actual',
-  'fee',
-  'paymentAmount',
-  'paymentDate',
-  'totalProjectAmount',
-  'totalPaymentAmount',
   'inviterFullname',
-  'roleId',
+  'inviterRoleId',
 ]
 
 // 定义可搜索的字段
-const searchableFields = ['fullname', 'regionName', 'currency']
+const searchableFields = ['userFullname', 'regionName', 'currencyName']
 
 const isDialogVisible = ref(false)
 
@@ -157,9 +158,9 @@ const tableMaxHeight = computed(() => {
 
 // 定义搜索条件的响应式对象
 const searchCriteria = reactive({
-  fullname: '',
+  userFullname: '',
   regionName: '',
-  currency: '',
+  currencyName: '',
 })
 
 // 计算过滤后的数据
@@ -217,7 +218,7 @@ const fieldLabel = (field) => {
 
 // 方法：根据字段名称返回格式化函数
 const formatField = (field) => {
-  if (field === 'roleId') {
+  if (field === 'inviterRoleId') {
     return (row) => roleIdMapping[row[field]] || row[field]
   }
   return null
@@ -225,7 +226,7 @@ const formatField = (field) => {
 
 // 方法：根据字段名称返回组件类型
 const getComponentType = (field) => {
-  if (field === 'roleId') {
+  if (field === 'inviterRoleId') {
     return 'el-select'
   }
   return 'el-input'
@@ -233,7 +234,7 @@ const getComponentType = (field) => {
 
 // 方法：根据字段名称返回组件的额外属性
 const getComponentProps = (field) => {
-  if (field === 'roleId') {
+  if (field === 'inviterRoleId') {
     return {
       clearable: true,
     }

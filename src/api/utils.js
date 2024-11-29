@@ -2,12 +2,12 @@ import request from '../utils/request';
 
 // 获取所有项目类型
 export function fetchAllTypes() {
-    return request.get('/system/alltypes');
+    return request.get('/system/allglobalparams');
   }
 
 // 获取所有项目类型
 export function fetchAllRegions() {
-    return request.get('/system/allregions');
+    return request.get('/system/allregionprojects');
   }
 
 // 按条件获取角色权限

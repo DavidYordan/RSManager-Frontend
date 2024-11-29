@@ -5,29 +5,29 @@
       <el-row :gutter="20">
         <!-- 学员姓名 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.fullname')">
-            <el-input v-model="form.fullname" :placeholder="$t('ViewScholars.placeholders.enterFullname')"></el-input>
+          <el-form-item label="姓名">
+            <el-input v-model="form.fullname" placeholder="输入姓名"></el-input>
           </el-form-item>
         </el-col>
 
         <!-- 学员账号 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.username')">
-            <el-input v-model="form.username" :placeholder="$t('ViewScholars.placeholders.enterUsername')"></el-input>
+          <el-form-item label="用户名">
+            <el-input v-model="form.username" placeholder="输入用户名"></el-input>
           </el-form-item>
         </el-col>
 
         <!-- 学员邀请码 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.invitationCode')">
-            <el-input v-model="form.invitationCode" :placeholder="$t('ViewScholars.placeholders.enterInvitationCode')"></el-input>
+          <el-form-item label="平台邀请码">
+            <el-input v-model="form.invitationCode" placeholder="输入平台邀请码"></el-input>
           </el-form-item>
         </el-col>
 
         <!-- 项目等级 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.roleId')">
-            <el-select v-model="form.roleId" :placeholder="$t('ViewScholars.placeholders.selectRole')" clearable>
+          <el-form-item label="角色">
+            <el-select v-model="form.roleId" placeholder="选择角色" clearable>
               <el-option
                 v-for="(label, key) in roleOptions"
                 :key="key"
@@ -42,29 +42,29 @@
       <el-row :gutter="20">
         <!-- 邀请人姓名 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.inviterFullname')">
-            <el-input v-model="form.inviterFullname" :placeholder="$t('ViewScholars.placeholders.enterInviterFullname')"></el-input>
+          <el-form-item label="邀请人姓名">
+            <el-input v-model="form.inviterFullname" placeholder="输入邀请人姓名"></el-input>
           </el-form-item>
         </el-col>
 
         <!-- 邀请人账号 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.inviterName')">
-            <el-input v-model="form.inviterName" :placeholder="$t('ViewScholars.placeholders.enterInviterName')"></el-input>
+          <el-form-item label="邀请人账号">
+            <el-input v-model="form.inviterName" placeholder="输入邀请人账号"></el-input>
           </el-form-item>
         </el-col>
 
         <!-- 邀请人邀请码 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.inviterCode')">
-            <el-input v-model="form.invitationCode" :placeholder="$t('ViewScholars.placeholders.enterInviterCode')"></el-input>
+          <el-form-item label="邀请人邀请码">
+            <el-input v-model="form.inviterCode" placeholder="输入邀请人邀请码"></el-input>
           </el-form-item>
         </el-col>
 
         <!-- Tiktok账号 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.tiktokAccount')">
-            <el-input v-model="form.tiktokAccount" :placeholder="$t('ViewScholars.placeholders.enterTiktokAccount')"></el-input>
+          <el-form-item label="Tiktok账号">
+            <el-input v-model="form.tiktokAccount" placeholder="输入Tiktok账号"></el-input>
           </el-form-item>
         </el-col>
       </el-row>
@@ -72,22 +72,22 @@
       <el-row :gutter="20">
         <!-- 管理人姓名 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.managerFullname')">
-            <el-input v-model="form.managerFullname" :placeholder="$t('ViewScholars.placeholders.enterManagerFullname')"></el-input>
+          <el-form-item label="管理人姓名">
+            <el-input v-model="form.managerFullname" placeholder="输入管理人姓名"></el-input>
           </el-form-item>
         </el-col>
 
         <!-- 管理人账号 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.managerName')">
-            <el-input v-model="form.managerName" :placeholder="$t('ViewScholars.placeholders.enterManagerName')"></el-input>
+          <el-form-item label="管理人账号">
+            <el-input v-model="form.managerName" placeholder="输入管理人账号"></el-input>
           </el-form-item>
         </el-col>
 
         <!-- 地区 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.regionName')">
-            <el-select v-model="form.regionName" :placeholder="$t('ViewScholars.placeholders.selectRegionName')" clearable>
+          <el-form-item label="地区">
+            <el-select v-model="form.regionName" placeholder="选择地区" clearable>
               <el-option
                 v-for="(label, key) in regionOptions"
                 :key="key"
@@ -100,8 +100,8 @@
 
         <!-- 币种 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.currency')">
-            <el-select v-model="form.currency" :placeholder="$t('ViewScholars.placeholders.selectCurrency')" clearable>
+          <el-form-item label="币种">
+            <el-select v-model="form.currencyName" placeholder="选择币种" clearable>
               <el-option
                 v-for="(label, key) in currencyOptions"
                 :key="key"
@@ -114,10 +114,10 @@
       </el-row>
 
       <el-row :gutter="20">
-        <!-- 是否有邀请人 -->
+        <!-- 未录入邀请人 -->
         <el-col :span="6">
-          <el-form-item :label="$t('ViewScholars.inviterExists')">
-            <el-select v-model="form.inviterExists" :placeholder="$t('ViewScholars.placeholders.selectInviterExists')" clearable>
+          <el-form-item label="未录入邀请人">
+            <el-select v-model="form.inviterNotExists" placeholder="选择" clearable>
               <el-option
                 v-for="(label, key) in enabledOptions"
                 :key="key"
@@ -128,9 +128,9 @@
           </el-form-item>
         </el-col>
 
-        <!-- 申请单创建时间 -->
+        <!-- 创建日期 -->
         <el-col :span="12">
-          <el-form-item :label="$t('ViewScholars.createdTimeRange')">
+          <el-form-item label="创建日期">
             <el-date-picker
               v-model="form.createdAfter"
               type="date"
@@ -149,8 +149,8 @@
 
         <el-col :span="6" class="button-group">
           <el-form-item>
-            <el-button type="primary" @click="searchusersHandler">{{ $t('ViewScholars.buttons.query') }}</el-button>
-            <el-button @click="resetForm">{{ $t('ViewScholars.buttons.reset') }}</el-button>
+            <el-button type="primary" @click="searchusersHandler">查询</el-button>
+            <el-button @click="resetForm">重置</el-button>
           </el-form-item>
         </el-col>
       </el-row>
@@ -177,13 +177,11 @@
 
         <!-- 表格列定义 -->
         <el-table-column
-          :label="$t('ViewScholars.table.userId')"
-          
+          label="用户ID"
         >
           <template #default="scope">
             <span @click="toggleRow(scope.row)" style="cursor: pointer; display: inline-flex; align-items: center;">
               <component
-                :is="tableRef.value && tableRef.value.isRowExpanded(scope.row) ? 'ArrowLeftBold' : 'ArrowRightBold'"
                 style="margin-right: 4px;"
               />
               <span>{{ scope.row.userId }}</span>
@@ -191,33 +189,41 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="fullname" :label="$t('ViewScholars.table.fullname')"></el-table-column>
-        <el-table-column prop="roleId" :label="$t('ViewScholars.table.role')">
+        <el-table-column label="姓名">
           <template #default="scope">
-            {{ roleOptions[scope.row.roleId] }}
+            <span>{{ scope.row.fullname || scope.row.username || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="角色">
+          <template #default="scope">
+            <span>{{ scope.row.roleName || '-' }}</span>
           </template>
         </el-table-column>
         <!-- 管理人账号 -->
-        <el-table-column prop="managerFullname" :label="$t('ViewScholars.table.managerFullname')"></el-table-column>
-        <el-table-column prop="inviterFullname" :label="$t('ViewScholars.table.inviterFullname')">
+        <el-table-column label="管理人">
+          <template #default="scope">
+            <span>{{ scope.row.managerFullname || scope.row.managerName || '-'}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="邀请人">
           <template #default="scope">
             <span
-              :style="{ color: ([4, 5, 6].includes(scope.row.roleId) && !scope.row.inviterFullname) ? 'red' : 'inherit' }"
+              :style="{ color: ([4, 5, 6].includes(scope.row.roleId) && scope.row.inviterId == null) ? 'red' : 'inherit' }"
             >
-              <span v-html="([4, 5, 6].includes(scope.row.roleId) && !scope.row.inviterFullname) ? `未录入` : scope.row.inviterFullname || ''"></span>
+              <span v-html="([4, 5, 6].includes(scope.row.roleId) && scope.row.inviterId == null) ? `未录入` : scope.row.inviterFullname || scope.row.inviterName || ''"></span>
             </span>
           </template>
         </el-table-column>
         <!-- 项目总金额 -->
-        <el-table-column prop="projectAmountSum" label="项目总金额">
+        <el-table-column label="项目金额">
           <template #default="scope">
-            {{ formatCurrency(scope.row.projectAmountSum, scope.row.currency) }}
+            {{ formatCurrency(scope.row.projectAmount, scope.row.currencyName) }}
           </template>
         </el-table-column>
         <!-- 已缴纳学费 -->
         <el-table-column prop="paidStr" label="已缴纳学费">
           <template #default="scope">
-            <span v-html="scope.row.paidStr"></span>
+            <span v-html="getPaidStr(scope.row.applicationPaymentRecordDTOs)"></span>
           </template>
         </el-table-column>
         <!-- 销售佣金 -->
@@ -227,42 +233,42 @@
           </template>
         </el-table-column>
         <!-- 平台总收入 -->
-        <el-table-column :label="$t('ViewScholars.form.platformTotalRevenue')">
+        <el-table-column label="平台总收入 ">
           <template #default="scope">
-            {{ formatCurrency(scope.row.platformTotalRevenue) }}
+            {{ formatCurrency(scope.row.moneySum) }}
           </template>
         </el-table-column>
         <!-- 平台总提现 -->
-        <el-table-column :label="$t('ViewScholars.form.platformTotalWithdrawal')">
+        <el-table-column label="平台总提现">
           <template #default="scope">
-            {{ formatCurrency(scope.row.platformTotalWithdrawal) }}
+            {{ formatCurrency(scope.row.cashOut) }}
           </template>
         </el-table-column>
         <!-- 平台余额 -->
-        <el-table-column :label="$t('ViewScholars.form.platformRevenueBalance')">
+        <el-table-column label="平台余额">
           <template #default="scope">
-            {{ formatCurrency(scope.row.platformRevenueBalance) }}
+            {{ formatCurrency(scope.row.money) }}
           </template>
         </el-table-column>
         <!-- 平台钱包 -->
-        <el-table-column prop="wallet" :label="$t('ViewScholars.form.platformMoney')">
+        <el-table-column prop="wallet" label="平台钱包">
           <template #default="scope">
-            {{ formatCurrency(scope.row.platformMoney) }}
+            {{ formatCurrency(scope.row.userMoney) }}
           </template>
         </el-table-column>
         <el-table-column
-          :label="$t('ViewScholars.table.actions')"
+          label="操作"
           width="120"
           fixed="right"
         >
           <template #default="scope">
             <el-button type="primary" size="small" @click="viewScholar(scope.row)">
-              {{ $t('ViewScholars.buttons.view') }}
+              查看
             </el-button>
           </template>
         </el-table-column>
       </el-table>
-      <ViewScholarDrawer ref="ViewScholarDrawer" />
+      <ViewScholarDrawer ref="ViewScholarDrawerRef" />
     </div>
 
     <!-- 分页 -->
@@ -289,21 +295,18 @@ import ViewScholarDrawer from '@/components/ViewScholarDrawer.vue';
 import { searchusers } from '@/api/user';
 import { fetchAllRegions as apifetchAllRegions } from '@/api/utils'
 import { v4 as uuidv4 } from 'uuid';
-import { ArrowRightBold, ArrowLeftBold } from '@element-plus/icons-vue'; 
 
 export default {
   name: 'ViewScholars',
   components: { 
-    ViewScholarDrawer, 
-    ArrowRightBold, 
-    ArrowLeftBold 
+    ViewScholarDrawer
   },
   setup() {
     const { t } = useI18n();
 
     // 表单数据
     const form = reactive({
-      inviterExists: '',
+      inviterNotExists: '',
       fullname: '',
       username: '',
       invitationCode: '',
@@ -311,11 +314,9 @@ export default {
       inviterFullname: '',
       inviterName: '',
       inviterCode: '',
-      processStatuses: [],
       managerFullname: '',
       managerName: '',
       roleId: null,
-      paymentMethod: '',
       createdAfter: null,
       createdBefore: null
     });
@@ -354,7 +355,7 @@ export default {
     const regionOptions = ref([]);
     const currencyOptions = ref([]);
 
-    const ViewScholarDrawer = shallowRef(null);
+    const ViewScholarDrawerRef = shallowRef(null);
 
     // 使用 Map 管理树节点
     const map = new Map();
@@ -375,7 +376,7 @@ export default {
     };
 
     /**
-     * 获取学者数据
+     * 获取学员数据
      * @param {Object} payload - 请求参数
      * @param {Object|null} parentRow - 父级行数据
      */
@@ -386,14 +387,13 @@ export default {
         if (response.data.success) {
           let data = response.data.data.content.map(item => {
             if (item.inviteCount > 0) {
-              const { children, ...rest } = item; // 移除 children
+              const { children, ...rest } = item;
               return { ...rest, hasChildren: true };
             } else {
               return { ...item, hasChildren: false };
             }
           });
 
-          // 添加唯一键
           data = addUniqueKey(data);
 
           if (parentRow) {
@@ -417,14 +417,14 @@ export default {
     };
 
     /**
-     * 搜索学者
+     * 搜索学员
      */
     const searchusersHandler = () => {
       currentPage.value = 1;
       const payload = {
         ...form,
         roleId: form.roleId ? parseInt(form.roleId, 10) : null,
-        inviterExists: form.inviterExists === 'true' ? true : form.inviterExists === 'false' ? false : null,
+        inviterNotExists: form.inviterNotExists === 'true' ? true : form.inviterNotExists === 'false' ? false : null,
         page: currentPage.value - 1,
         size: pageSize.value
       };
@@ -435,7 +435,7 @@ export default {
      * 重置表单
      */
     const resetForm = () => {
-      form.inviterExists = '';
+      form.inviterNotExists = '';
       form.fullname = '';
       form.username = '';
       form.invitationCode = '';
@@ -443,23 +443,20 @@ export default {
       form.inviterFullname = '';
       form.inviterName = '';
       form.inviterCode = '';
-      form.processStatuses = [];
       form.managerFullname = '';
       form.managerName = '';
       form.roleId = null;
-      form.paymentMethod = '';
       form.createdAfter = null;
       form.createdBefore = null;
       searchusersHandler();
     };
 
     /**
-     * 查看学者详情
-     * @param {String} userId - 用户ID
+     * 查看学员详情
      */
-    const viewScholar = (userId) => {
-      if (ViewScholarDrawer.value) {
-        ViewScholarDrawer.value.showDrawer(userId);
+    const viewScholar = (row) => {
+      if (ViewScholarDrawerRef.value) {
+        ViewScholarDrawerRef.value.showDrawer(row);
       } else {
         console.error('Drawer component is not ready.');
       }
@@ -470,11 +467,11 @@ export default {
      * @param {Number} value - 金额
      * @returns {String} 格式化后的金额
      */
-    const formatCurrency = (value, currency="美元") => {
+    const formatCurrency = (value, currencyName="美元") => {
       if (value === null || value === undefined) {
         return '-'; // 返回占位符
       }
-      return `${parseFloat(value.toFixed(2))} ${currency ? currency : ''}`;
+      return `${parseFloat(value.toFixed(2))} ${currencyName ? currencyName : ''}`;
     };
 
     /**
@@ -488,25 +485,54 @@ export default {
 
       // 汇总 profits1
       profits1.forEach(item => {
-        if (!revenueMap[item.currency]) {
-          revenueMap[item.currency] = 0;
+        if (!revenueMap[item.currencyName]) {
+          revenueMap[item.currencyName] = 0;
         }
-        revenueMap[item.currency] += item.profit;
+        revenueMap[item.currencyName] += item.profit;
       });
 
       // 汇总 profits2
       profits2.forEach(item => {
-        if (!revenueMap[item.currency]) {
-          revenueMap[item.currency] = 0;
+        if (!revenueMap[item.currencyName]) {
+          revenueMap[item.currencyName] = 0;
         }
-        revenueMap[item.currency] += item.profit;
+        revenueMap[item.currencyName] += item.profit;
       });
 
       // 格式化输出字符串
       return Object.entries(revenueMap)
-        .map(([currency, total]) => `${total.toFixed(2)} ${currency}`)
+        .map(([currencyName, total]) => `${total.toFixed(2)} ${currencyName}`)
         .join('<br>');
     };
+
+    const getRoleName = (rolePermissions) => {
+      if (!rolePermissions || !rolePermissions.length) {
+        return '未知';
+      }
+
+      const matchingRole = rolePermissions.find(
+        (item) => item.endDate === null
+      );
+
+      return matchingRole ? matchingRole.roleName : '未知';
+    };
+
+    const getPaidStr = (payments) => {
+      if (!payments || !payments.length) {
+        return "0";
+      }
+      // 使用 Map 分组并计算总额
+      const grouped = payments.reduce((acc, payment) => {
+        const currencyName = payment.currencyName;
+        acc[currencyName] = (acc[currencyName] || 0) + payment.paymentAmount;
+        return acc;
+      }, {});
+
+      // 构造字符串，每个货币一行
+      return Object.entries(grouped)
+        .map(([currencyName, total]) => `${total} ${currencyName}`)
+        .join("<br>");
+    }
 
     /**
      * 设置行类名（根据需求自定义）
@@ -638,7 +664,7 @@ export default {
           const data = response.data.data
 
           regionOptions.value = data.map(region => region.regionName);
-          currencyOptions.value = [...new Set(data.map(region => region.currency))];
+          currencyOptions.value = [...new Set(data.map(region => region.currencyName))];
 
         } else {
           ElMessage.error(t('enrollScholar.FetchTypesFailed'))
@@ -683,17 +709,17 @@ export default {
       pageSize,
       totalElements,
       totalPages,
-      ViewScholarDrawer,
+      ViewScholarDrawerRef,
       loadChildren,
       refresh, // 添加 refresh 方法
       updateTable, // 添加 updateTable 方法
       toggleRow, // 添加 toggleRow 方法
       tableRef, // 添加 tableRef
-      ArrowRightBold,
-      ArrowLeftBold,
       calculatePayments,
       regionOptions,
-      currencyOptions
+      currencyOptions,
+      getRoleName,
+      getPaidStr
     };
   }
 };

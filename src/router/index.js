@@ -178,6 +178,15 @@ const routes = [
               title: 'pageTitle.QueryFinancial',
               roles: [1, 8]
             },
+          },
+          {
+            path: 'view-payment-account',
+            name: 'ViewPaymentAccount',
+            component: () => import('../views/ViewPaymentAccount.vue'),
+            meta: { 
+              title: 'pageTitle.ViewPaymentAccount',
+              roles: [1, 8]
+            },
           }
         ]
       },

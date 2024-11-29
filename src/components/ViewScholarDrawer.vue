@@ -7,7 +7,7 @@
     direction="ltr"
     @close="closeDrawer"
   >
-    <div v-if="applicationData" class="drawer-content">
+    <div v-if="userData" class="drawer-content">
       <!-- Main Data Section with 2-Column Layout -->
       <div class="main-data-table">
         <!-- Left Table -->
@@ -80,7 +80,7 @@
 
       <!-- TikTok Accounts Section -->
       <el-table
-        :data="applicationData.tiktokAccountDTO ? [applicationData.tiktokAccountDTO] : []"
+        :data="userData ? [userData] : []"
         style="width: 100%; margin-top: 20px;"
         :border="true"
         stripe
@@ -100,15 +100,13 @@
             </div>
           </template>
         </el-table-column>
-        <!-- 其他列保持不变 -->
-        <el-table-column prop="diggCount" :label="t('ViewScholarDrawer.fields.diggCount')"></el-table-column>
-        <el-table-column prop="followerCount" :label="t('ViewScholarDrawer.fields.followerCount')"></el-table-column>
-        <el-table-column prop="followingCount" :label="t('ViewScholarDrawer.fields.followingCount')"></el-table-column>
-        <el-table-column prop="heartCount" :label="t('ViewScholarDrawer.fields.heartCount')"></el-table-column>
-        <el-table-column prop="videoCount" :label="t('ViewScholarDrawer.fields.videoCount')"></el-table-column>
-        <el-table-column prop="createdAt" :label="t('ViewScholarDrawer.fields.tiktokCreatedAt')">
+        <el-table-column prop="followingCount" label="关注数"></el-table-column>
+        <el-table-column prop="followerCount" label="粉丝数"></el-table-column>
+        <el-table-column prop="heartCount" label="点赞数"></el-table-column>
+        <el-table-column prop="videoCount" label="视频数"></el-table-column>
+        <el-table-column prop="updateAt" label="数据更新时间">
           <template #default="scope">
-            {{ formatDate(scope.row.createdAt) }}
+            {{ formatUpdateAt(scope.row.updatedAt) }}
           </template>
         </el-table-column>
       </el-table>
@@ -138,9 +136,9 @@
 
     <!-- Find User Dialog -->
     <FindUser
-      v-if="applicationData && currentEditField"
+      v-if="userData && currentEditField"
       :fieldKey="currentEditField"
-      :currentUserId="applicationData.userId"
+      :currentUserId="userData.userId"
       ref="findUser"
       @updateSuccess="handleFindUserSuccess"
     />
@@ -174,89 +172,132 @@ export default {
   setup(_, { expose }) {
     const { t } = useI18n();
     const drawerVisible = ref(false);
-    const applicationData = ref(null);
+    const userData = ref(null);
     const store = useStore();
 
     const currentUserRoleId = computed(() => store.roleId);
 
     const showDrawer = (data) => {
-      applicationData.value = data;
+      userData.value = data;
       drawerVisible.value = true;
     };
 
     const closeDrawer = () => {
       drawerVisible.value = false;
-      applicationData.value = null;
+      userData.value = null;
     };
 
-    const formatCurrency = (value) => value != null ? `${Number(value).toLocaleString()} ${applicationData.value?.currency}` : '-';
+    const formatCurrency = (value, currencyName="美元") => {
+      if (value === null || value === undefined) {
+        return '-'; // 返回占位符
+      }
+      return `${parseFloat(value.toFixed(2))} ${currencyName ? currencyName : ''}`;
+    };
+
+    const getPaidStr = (payments) => {
+      if (!payments || !payments.length) {
+        return "0";
+      }
+      // 使用 Map 分组并计算总额
+      const grouped = payments.reduce((acc, payment) => {
+        const currencyName = payment.currencyName;
+        acc[currencyName] = (acc[currencyName] || 0) + payment.paymentAmount;
+        return acc;
+      }, {});
+
+      // 构造字符串，每个货币一行
+      return Object.entries(grouped)
+        .map(([currencyName, total]) => `${total} ${currencyName}`)
+        .join("<br>");
+    }
+
     const formatDate = (value) => value ? new Date(value).toLocaleString() : '-';
 
     const groupProfitsByCurrency = (profits) => {
       if (!profits) return {};
       return profits.reduce((acc, profit) => {
-        const currency = profit.currency || 'Unknown';
-        acc[currency] = (acc[currency] || 0) + (profit.profit || 0);
+        const currencyName = profit.currencyName || 'Unknown';
+        acc[currencyName] = (acc[currencyName] || 0) + (profit.profit || 0);
         return acc;
       }, {});
     };
 
     const formatGroupedProfits = (profits) => {
       return Object.entries(profits)
-        .map(([currency, amount]) => `${currency}: ${Number(amount).toLocaleString()}`)
+        .map(([currencyName, amount]) => `${Number(amount).toLocaleString()} ${currencyName}`)
         .join('<br>');
     };
 
-    const roleIdToChinese = (roleId) => {
-      const roles = {
-        1: '管理员',
-        2: '主管',
-        3: '销售',
-        4: '高阶学员',
-        5: '中阶学员',
-        6: '初阶学员',
-        7: '投手',
-        8: '财务',
-        9: '导师'
-      };
-      return roles[roleId] || '未知';
+    const formatUpdateAt = (utcTime) => {
+      if (!utcTime) {
+        return '-';
+      }
+      const updateAt = new Date(utcTime);
+      const now = new Date();
+
+      const diff = now - updateAt;
+
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      const months = Math.floor(days / 30);
+      const years = Math.floor(days / 365);
+
+      const timeUnits = [
+        { unit: "年", value: years },
+        { unit: "月", value: months % 12 },
+        { unit: "天", value: days % 30 },
+        { unit: "时", value: hours % 24 },
+        { unit: "分", value: minutes % 60 },
+        { unit: "秒", value: seconds % 60 },
+      ];
+
+      const nonZeroUnits = timeUnits.filter((item) => item.value > 0);
+
+      if (nonZeroUnits.length === 0) {
+        return "刚刚";
+      }
+
+      const topTwoUnits = nonZeroUnits.slice(0, 2);
+
+      return topTwoUnits.map((item) => `${item.value}${item.unit}`).join(" ");
     };
-    
+
     const leftMainData = computed(() => {
-      const profits1 = groupProfitsByCurrency(applicationData.value?.profits1);
+      const profits1 = groupProfitsByCurrency(userData.value?.profits1);
       return [
-        { key: 'userId', label: t('ViewScholarDrawer.fields.userId'), value: applicationData.value?.userId || '-' },
-        { key: 'fullname', label: t('ViewScholarDrawer.fields.fullname'), value: applicationData.value?.fullname || '-' },
-        { key: 'regionName', label: t('ViewScholarDrawer.fields.regionName'), value: applicationData.value?.regionName || '-' },
-        { key: 'platformId', label: t('ViewScholarDrawer.fields.platformId'), value: applicationData.value?.platformId || '-' },
-        { key: 'inviterFullname', label: t('ViewScholarDrawer.fields.inviterFullname'), value: applicationData.value?.inviterFullname || '-' },
-        { key: 'managerFullname', label: t('ViewScholarDrawer.fields.managerFullname'), value: applicationData.value?.managerFullname },
-        { key: 'teacherFullname', label: t('ViewScholarDrawer.fields.teacherFullname'), value: applicationData.value?.teacherFullname },
-        { key: 'projectAmountSum', label: "项目总金额", value: formatCurrency(applicationData.value?.projectAmountSum) },
-        { key: 'inviteCount', label: t('ViewScholarDrawer.fields.inviteCount'), value: applicationData.value?.inviteCount || '-' },
-        { key: 'profits1', label: t('ViewScholarDrawer.fields.profits1'), value: formatGroupedProfits(profits1), isLink: applicationData.value?.profits1.length > 0 },
-        { key: 'platformTotalRevenue', label: t('ViewScholarDrawer.fields.platformTotalRevenue'), value: formatCurrency(applicationData.value?.platformTotalRevenue) },
-        { key: 'platformTotalWithdrawal', label: t('ViewScholarDrawer.fields.platformTotalWithdrawal'), value: formatCurrency(applicationData.value?.platformTotalWithdrawal) },
-        { key: 'createdAt', label: t('ViewScholarDrawer.fields.createdAt'), value: formatDate(applicationData.value?.createdAt) },
+        { key: 'userId', label: "用户ID", value: userData.value.userId || '-' },
+        { key: 'fullname', label: "姓名", value: userData.value.fullname || '-' },
+        { key: 'regionName', label: "地区", value: userData.value.regionName || '-' },
+        { key: 'platformId', label: "平台ID", value: userData.value.platformId || '-' },
+        { key: 'inviterFullname', label: "邀请人姓名", value: userData.value.inviterFullname || '-' },
+        { key: 'managerFullname', label: "管理人姓名", value: userData.value.managerFullname || '-' },
+        { key: 'teacherFullname', label: "导师姓名", value: userData.value.teacherFullname || '-' },
+        { key: 'projectAmountSum', label: "项目金额", value: formatCurrency(userData.value.projectAmount, userData.value.projectCurrencyName) },
+        { key: 'inviteCount', label: "邀请人数", value: userData.value.inviteCount || '-' },
+        { key: 'profits1', label: "一级分佣", value: formatGroupedProfits(profits1), isLink: userData.value?.profits1.length > 0 },
+        { key: 'platformTotalRevenue', label: "平台总收入", value: formatCurrency(userData.value.moneySum) },
+        { key: 'platformTotalWithdrawal', label: "平台总提现", value: formatCurrency(userData.value.cashOut) },
+        { key: 'createdAt', label: "创建时间", value: formatDate(userData.value.createdAt) },
       ];
     });
 
     const rightMainData = computed(() => {
-      const profits2 = groupProfitsByCurrency(applicationData.value?.profits2);
+      const profits2 = groupProfitsByCurrency(userData.value?.profits2);
       return [
-        { key: 'username', label: t('ViewScholarDrawer.fields.username'), value: applicationData.value?.username || '-' },
-        { key: 'roleId', label: t('ViewScholarDrawer.fields.roleId'), value: roleIdToChinese(applicationData.value?.roleId) },
-        { key: 'currency', label: t('ViewScholarDrawer.fields.currency'), value: applicationData.value?.currency || '-' },
-        { key: 'invitationCode', label: t('ViewScholarDrawer.fields.platformCode'), value: applicationData.value?.invitationCode || '-' },
-        { key: 'inviterName', label: t('ViewScholarDrawer.fields.inviterName'), value: applicationData.value?.inviterName || '-' },
-        { key: 'managerName', label: t('ViewScholarDrawer.fields.managerName'), value: applicationData.value?.managerName || '-' },
-        { key: 'teacherName', label: t('ViewScholarDrawer.fields.teacherName'), value: applicationData.value?.teacherName || '-' },
-        { key: 'paidStr', label: "已缴纳学费", value: applicationData.value?.paidStr },
-        { key: 'platformInviteCount', label: t('ViewScholarDrawer.fields.platformInviteCount'), value: applicationData.value?.platformInviteCount || '-' },
-        { key: 'profits2', label: t('ViewScholarDrawer.fields.profits2'), value: formatGroupedProfits(profits2), isLink: applicationData.value?.profits1.length > 0 },
-        { key: 'platformRevenueBalance', label: t('ViewScholarDrawer.fields.platformRevenueBalance'), value: formatCurrency(applicationData.value?.platformRevenueBalance) },
-        { key: 'platformMoney', label: t('ViewScholarDrawer.fields.platformMoney'), value: formatCurrency(applicationData.value?.platformMoney) },
-        { key: 'updatedAt', label: t('ViewScholarDrawer.fields.updatedAt'), value: formatDate(applicationData.value?.updatedAt) },
+        { key: 'username', label: "用户名", value: userData.value?.username || '-' },
+        { key: 'roleId', label: "角色", value: userData.value.roleId },
+        { key: 'currencyName', label: "币种", value: userData.value.currencyName || '-' },
+        { key: 'invitationCode', label: "平台邀请码", value: userData.value.invitationCode || '-' },
+        { key: 'inviterName', label: "邀请人账号", value: userData.value.inviterName || '-' },
+        { key: 'managerName', label: "管理人账号", value: userData.value.managerName || '-' },
+        { key: 'teacherName', label: "导师账号", value: userData.value.teacherName || '-' },
+        { key: 'paidStr', label: "已缴纳学费", value: getPaidStr(userData.value.applicationPaymentRecordDTOs) },
+        { key: 'platformInviteCount', label: "平台邀请人数", value: userData.value.platformInviteCount || '-' },
+        { key: 'profits2', label: "二级分佣", value: formatGroupedProfits(profits2), isLink: userData.value?.profits2.length > 0 },
+        { key: 'platformRevenueBalance', label: "平台收入余额", value: formatCurrency(userData.value.money) },
+        { key: 'platformMoney', label: "平台钱包", value: formatCurrency(userData.value.userMoney) },
       ];
     });
 
@@ -264,6 +305,18 @@ export default {
     const isEditable = (fieldKey) => {
       const editableFields = ['managerName', 'teacherName', 'fullname', 'tiktokAccount', 'status'];
       return currentUserRoleId.value === 1 && editableFields.includes(fieldKey);
+    };
+
+    const getRoleName = (rolePermissions) => {
+      if (!rolePermissions || !rolePermissions.length) {
+        return '未知';
+      }
+
+      const matchingRole = rolePermissions.find(
+        (item) => item.endDate === null
+      );
+
+      return matchingRole ? matchingRole.roleName : '未知';
     };
 
     // 变更对话框相关状态
@@ -301,7 +354,7 @@ export default {
           currentTikTokAccount.value = row;
           changeForm.value = { tiktokAccount: row.tiktokAccount };
         } else {
-          changeForm.value = { [changeField.value]: applicationData.value[fieldKey] };
+          changeForm.value = { [changeField.value]: userData.value[fieldKey] };
         }
 
         // 根据字段设置不同的表单规则
@@ -348,7 +401,7 @@ export default {
       changeFormRef.value.validate(async (valid) => {
         if (valid) {
           const updateData = {
-            userId: applicationData.value.userId,
+            userId: userData.value.userId,
             // 仅包含被编辑的字段
             [changeField.value]: changeForm.value[changeField.value],
           };
@@ -357,9 +410,9 @@ export default {
             const success = await updateUser(updateData);
             if (success) {
               // 刷新数据
-              const response = await searchusers({ userId: applicationData.value.userId });
+              const response = await searchusers({ userId: userData.value.userId });
               if (response && response.data) {
-                applicationData.value = response.data.data.content[0];
+                userData.value = response.data.data.content[0];
               }
               // 关闭对话框
               changeDialogVisible.value = false;
@@ -367,29 +420,29 @@ export default {
               ElMessage.success(t('ViewScholarDrawer.messages.updateSuccess'));
             } else {
               // 处理更新失败的情况
-              ElMessage.error(t('ViewScholarDrawer.messages.updateFailed'));
+              ElMessage.error(success.data.message || t('ViewScholarDrawer.messages.updateFailed'));
             }
           } catch (error) {
             // 处理错误
-            ElMessage.error(t('ViewScholarDrawer.messages.updateFailed'));
+            ElMessage.error(error || t('ViewScholarDrawer.messages.updateFailed'));
           }
         }
       });
     };
 
+
     // 处理 FindUser 的成功回调
-    const handleFindUserSuccess = (userData) => {
-      // userData 包含 userId, username, fullname
-      if (currentEditField.value === 'managerName') {
-        applicationData.value.managerFullname = userData.fullname;
-        applicationData.value.managerName = userData.username;
-        applicationData.value.managerId = userData.userId; // 假设需要保存 managerId
-      } else if (currentEditField.value === 'teacherName') {
-        applicationData.value.teacherFullname = userData.fullname;
-        applicationData.value.teacherName = userData.username;
-        applicationData.value.teacherId = userData.userId; // 假设需要保存 teacherId
+    const handleFindUserSuccess = async () => {
+      try {
+        const response = await searchusers({userId: userData.value.userId });
+        if (response && response.data) {
+          userData.value = response.data.data.content[0];
+        } else {
+          ElMessage.error(response.data.message || t('ViewScholarDrawer.messages.updateFailed'));
+        }
+      } catch (error) {
+        console.error('searchUsers error:', error);
       }
-      ElMessage.success(t('ViewScholarDrawer.messages.updateSuccess'));
     };
 
     // Generic Dialog
@@ -401,10 +454,10 @@ export default {
       let data = [];
 
       if (profitType === 'profits1') {
-        data = applicationData.value.profits1 || [];
+        data = userData.value.profits1 || [];
         profitsDialogTitle.value = '一级分佣明细';
       } else if (profitType === 'profits2') {
-        data = applicationData.value.profits2 || [];
+        data = userData.value.profits2 || [];
         profitsDialogTitle.value = '二级分佣明细';
       } else {
         return;
@@ -426,7 +479,7 @@ export default {
     return {
       t,
       drawerVisible,
-      applicationData,
+      userData,
       leftMainData,
       rightMainData,
       closeDrawer,
@@ -450,7 +503,10 @@ export default {
       resetChangeDialog,
       findUser, // 暴露 FindUser 的引用
       handleFindUserSuccess, // 处理回调
-      currentEditField
+      currentEditField,
+      getRoleName,
+      getPaidStr,
+      formatUpdateAt
     };
   }
 };

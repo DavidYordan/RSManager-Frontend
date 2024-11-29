@@ -139,7 +139,6 @@ import { ElMessage } from 'element-plus';
 import ResetPasswordModal from '@/components/ResetPasswordModal.vue';
 import Chart from 'chart.js/auto';
 import dayjs from 'dayjs';
-import Kursor from 'kursor';
 import { gsap } from 'gsap';
 
 export default {
@@ -413,13 +412,6 @@ export default {
 
     onMounted(() => {
       fetchUserSummary();
-
-      // 初始化鼠标拖尾效果
-      new Kursor({
-        type: 4,
-        color: '#C0C0C0',
-        removeDefaultCursor: true,
-      });
 
       // 使用 GSAP 为元素添加动画
       gsap.from('.summary-card', {

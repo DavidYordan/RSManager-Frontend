@@ -21,18 +21,18 @@
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item
-                  :label="$t('enrollScholar.inviterName')"
+                  label="邀请人账号"
                   prop="inviterName"
                 >
                   <el-input
                     v-model="form.inviterName"
                     :disabled="isSubmitting"
-                    :placeholder="$t('enrollScholar.enterInviterName')"
+                    placeholder="请输入邀请人账号"
                   ></el-input>
                   <span
                     v-if="inviterNameError"
                     class="error-text"
-                  >{{ $t('enrollScholar.inviterNameNotFound') }}</span>
+                  >找不到邀请人账号。</span>
                 </el-form-item>
               </el-col>
               <el-col :span="12" class="validation-container">
@@ -48,8 +48,8 @@
                       <span>
                         {{
                           isInviterValidated
-                            ? t('enrollScholar.inviterIdLabel')
-                            : t('enrollScholar.getInviterId')
+                            ? "验证通过"
+                            : "验证邀请人账号"
                         }}
                       </span>
                     </el-button>
@@ -70,18 +70,18 @@
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item
-                  :label="$t('enrollScholar.managerName')"
+                  label="管理者账号"
                   prop="managerName"
                 >
                   <el-input
                     v-model="form.managerName"
                     :disabled="isSubmitting"
-                    :placeholder="$t('enrollScholar.enterManagerName')"
+                    placeholder="请输入管理者账号"
                   ></el-input>
                   <span
                     v-if="managerNameError"
                     class="error-text"
-                  >{{ $t('enrollScholar.managerNameNotFound') }}</span>
+                  >找不到管理者账号。</span>
                 </el-form-item>
               </el-col>
               <el-col :span="12" class="validation-container">
@@ -97,8 +97,8 @@
                       <span>
                         {{
                           isManagerValidated
-                            ? t('enrollScholar.managerIdLabel')
-                            : t('enrollScholar.getManagerId')
+                            ? "验证通过"
+                            : "验证管理者账号"
                         }}
                       </span>
                     </el-button>
@@ -119,12 +119,12 @@
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item
-                  :label="$t('enrollScholar.fullname')"
+                  label="学员姓名"
                   prop="fullname"
                 >
                   <el-input
                     v-model="form.fullname"
-                    :placeholder="$t('enrollScholar.enterFullname')"
+                    placeholder="请输入学员姓名"
                     :disabled="isSubmitting"
                   ></el-input>
                 </el-form-item>
@@ -142,8 +142,8 @@
                       <span>
                         {{
                           isFullnameValidated
-                            ? t('enrollScholar.fullnameValidated')
-                            : t('enrollScholar.validateFullname')
+                            ? "验证通过"
+                            : "验证学员姓名"
                         }}
                       </span>
                     </el-button>
@@ -173,7 +173,7 @@
                     :placeholder="$t('enrollScholar.selectRegion')"
                   >
                     <el-option
-                      v-for="option in regions"
+                      v-for="option in regionOptions"
                       :key="option.regionName"
                       :label="option.regionName"
                       :value="option.regionName"
@@ -183,16 +183,16 @@
               </el-col>
               <el-col :span="12">
                 <el-form-item
-                  :label="$t('enrollScholar.currency')"
-                  prop="currency"
+                  label="币种"
+                  prop="currencyName"
                 >
                   <el-select
-                    v-model="form.currency"
-                    :placeholder="$t('enrollScholar.selectCurrency')"
+                    v-model="form.currencyName"
+                    placeholder="选择币种"
                     :disabled="isSubmitting"
                   >
                     <el-option
-                      v-for="option in currencyOptions"
+                      v-for="option in currencyNameOptions"
                       :key="option"
                       :label="option"
                       :value="option"
@@ -472,7 +472,7 @@ export default {
       inviterName: '',
       managerName: store.username,
       regionName: '',
-      currency: '',
+      currencyName: '',
       comments: '',
       files: []
     })
@@ -573,8 +573,8 @@ export default {
       regionName: [
         { required: true, message: t('enrollScholar.PleaseSelectRegion'), trigger: 'change' }
       ],
-      currency: [
-        { required: true, message: t('enrollScholar.PleaseEnterCurrency'), trigger: 'blur' }
+      currencyName: [
+        { required: true, message: t('enrollScholar.PleaseEnterCurrencyName'), trigger: 'blur' }
       ]
     }
 
@@ -813,7 +813,7 @@ export default {
       formData.append('fee', parseFloat(form.fee));
       formData.append('paymentTime', formattedPaymentTime);
       formData.append('regionName', form.regionName);
-      formData.append('currency', form.currency);
+      formData.append('currencyName', form.currencyName);
       formData.append('comments', form.comments);
 
       form.files.forEach(file => {
@@ -907,11 +907,11 @@ export default {
       if (enrollForm.value) {
         enrollForm.value.resetFields()
       }
-      form.regionName = regions.value[0].regionName
-      form.currency = regions.value[0].currency
+      form.regionName = regionOptions.value[0].regionName
+      form.currencyName = regionOptions.value[0].currencyName
       form.scholarLevel = 6
       form.projectName = projectNameMap.value[3]
-      form.projectAmount = projectMap.value[3][form.currency]
+      form.projectAmount = projectMap.value[3][form.currencyName]
     }
 
     // 监听邀请人姓名的变化
@@ -985,10 +985,10 @@ export default {
     const projectNameMap = ref({})
 
     // 地区数据
-    const regions = ref([])
+    const regionOptions = ref([])
 
     // 货币选项
-    const currencyOptions = ref([])
+    const currencyNameOptions = ref([])
 
     // 项目名称和金额映射，根据 roleId
     const projectMap = ref({})
@@ -996,22 +996,22 @@ export default {
     // 监听学员等级变化，更新项目名称和金额
     watch(() => form.scholarLevel, (newVal) => {
       const project = projectMap.value[newVal-3]
-      form.projectAmount = project ? project[form.currency] : ''
+      form.projectAmount = project ? project[form.currencyName] : ''
       form.projectName = project ? projectNameMap.value[newVal-3] : ''
     })
 
     // 监听地区变化，自动填充货币
     watch(() => form.regionName, (newRegionName) => {
-      const selectedRegion = regions.value.find(region => region.regionName === newRegionName)
+      const selectedRegion = regionOptions.value.find(region => region.regionName === newRegionName)
       if (selectedRegion) {
-        form.currency = selectedRegion.currency
+        form.currencyName = selectedRegion.currencyName
       }
     })
 
     // 监听货币变化，自动更新项目金额
-    watch(() => form.currency, (newCurrency) => {
+    watch(() => form.currencyName, (newCurrencyName) => {
       const project = projectMap.value[form.scholarLevel-3]
-      form.projectAmount = project ? project[newCurrency] : ''
+      form.projectAmount = project ? project[newCurrencyName] : ''
     })
 
     /**
@@ -1024,14 +1024,19 @@ export default {
           const data = response.data.data
 
           // 处理地区数据
-          regions.value = data.map(region => ({
+          regionOptions.value = data.map(region => ({
             regionName: region.regionName,
-            currency: region.currency
+            currencyName: region.currencyName,
+            regionCode: region.regionCode,
+            currencyCode: region.currencyCode,
+            projectId: region.projectId,
+            projectName: region.projectName,
+            projectAmount: region.projectAmount
           }))
 
           // 提取所有货币选项
-          currencyOptions.value = [
-            ...new Set(data.map(region => region.currency))
+          currencyNameOptions.value = [
+            ...new Set(data.map(region => region.currencyName))
           ]
 
           // 处理项目名称和金额映射
@@ -1040,7 +1045,7 @@ export default {
               if (!projectMap.value[project.projectId]) {
                 projectMap.value[project.projectId] = {}
               }
-              projectMap.value[project.projectId][region.currency] = project.projectAmount
+              projectMap.value[project.projectId][region.currencyName] = project.projectAmount
             })
           })
 
@@ -1058,7 +1063,7 @@ export default {
             projectNameMap.value[projectObj.projectId] = projectObj.projectName})
 
           // 初始化项目名称和金额
-          form.regionName = regions.value[0].regionName
+          form.regionName = regionOptions.value[0].regionName
           form.scholarLevel = 6
         } else {
           ElMessage.error(t('enrollScholar.FetchTypesFailed'))
@@ -1091,7 +1096,7 @@ export default {
       isFullnameValidated,
       canSaveApplication,
       canSubmitAudit,
-      currencyOptions,
+      currencyNameOptions,
       inviterNameError,
       managerNameError,
       fullnameError,
@@ -1107,7 +1112,7 @@ export default {
       isManagerLoading,
       isFullnameLoading,
       fileError,
-      regions,
+      regionOptions,
       scholarLevelOptions,
       computedRateOptions
     }

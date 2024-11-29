@@ -205,11 +205,7 @@ export default {
         const response = await updateUser(payload)
         if (response.data.success) {
           ElMessage.success('提交成功')
-          emit('updateSuccess', {
-            userId: form.value.userId,
-            username: form.value.username,
-            fullname: form.value.fullname
-          })
+          emit('updateSuccess')
           handleClose()
         } else {
           ElMessage.error('提交失败')

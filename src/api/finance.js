@@ -53,3 +53,30 @@ export function exportCashOut(data) {
     isDownload: true
   });
 }
+
+// /paymentaccount/update
+export function updatePaymentAccount(data) {
+  return request({
+    url: '/finance/paymentaccount/update',
+    method: 'post',
+    data
+  });
+}
+
+// /paymentaccount/search
+export function searchPaymentAccount(data) {
+  return request({
+    url: '/finance/paymentaccount/search',
+    method: 'post',
+    data
+  });
+}
+
+// /paymentaccount/delete
+export function deletePaymentAccount(data) {
+  return request({
+    url: '/finance/paymentaccount/delete',
+    method: 'post',
+    data
+  });
+}

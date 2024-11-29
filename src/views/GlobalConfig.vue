@@ -1,107 +1,5 @@
 <template>
   <div class="config-container">
-    <!-- 默认权限配置 -->
-    <el-card class="config-card">
-      <h2 class="section-title">{{ t('globalConfig.rolePermissionsTitle') }}</h2>
-      <el-table
-        :data="roles"
-        :border="true"
-        size="default"
-        style="width: 100%"
-        :span-method="roleSpanMethod"
-      >
-        <el-table-column
-          prop="roleName"
-          :label="$t('globalConfig.roleName')"
-        >
-          <template #default="{ row, rowIndex, column, rowSpan, colSpan }">
-            <span v-if="rowSpan > 0">{{ row.roleName }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="permissionName"
-          :label="$t('globalConfig.permissionName')"
-        ></el-table-column>
-        <el-table-column
-          prop="rate1"
-          :label="$t('globalConfig.rate1')"
-        >
-          <template #default="{ row }">
-            <el-input
-              v-if="row.isEditing"
-              v-model="row.rate1"
-              placeholder="请输入抽佣比例1"
-              size="small"
-              class="editable-input"
-            />
-            <span v-else>{{ row.rate1 }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="rate2"
-          :label="$t('globalConfig.rate2')"
-        >
-          <template #default="{ row }">
-            <el-input
-              v-if="row.isEditing"
-              v-model="row.rate2"
-              placeholder="请输入抽佣比例2"
-              size="small"
-              class="editable-input"
-            />
-            <span v-else>{{ row.rate2 }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="isEnabled"
-          :label="$t('globalConfig.isEnabled')"
-        >
-          <template #default="{ row }">
-            <el-switch
-              v-if="row.isEditing"
-              v-model="row.isEnabled"
-              :active-text="t('globalConfig.enabled')"
-              :inactive-text="t('globalConfig.disabled')"
-              size="small"
-            />
-            <span v-else>
-              {{ row.isEnabled ? t('globalConfig.enabled') : t('globalConfig.disabled') }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="$t('globalConfig.actions')"
-        >
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              @click="editRolePermission(row)"
-              v-if="!row.isEditing"
-            >
-              {{ t('globalConfig.edit') }}
-            </el-button>
-            <el-button
-              type="success"
-              size="small"
-              @click="updateRolePermission(row)"
-              v-if="row.isEditing"
-              :disabled="!isRowChanged(row)"
-            >
-              {{ t('globalConfig.update') }}
-            </el-button>
-            <el-button
-              type="warning"
-              size="small"
-              @click="cancelEditRolePermission(row)"
-              v-if="row.isEditing"
-            >
-              {{ t('globalConfig.cancel') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
 
     <!-- 默认项目配置 -->
     <el-card class="config-card">
@@ -112,7 +10,7 @@
           :label="t('globalConfig.projectLevel')"
         >
           <template #default="{ row }">
-            <span>{{ projectLevelMap[row.projectId] }}</span>
+            <span>{{ roleLevelMap[row.roleId] }}</span>
           </template>
         </el-table-column>
         <el-table-column
@@ -355,27 +253,13 @@ export default {
     const projects = ref([]);
     const regions = ref([]);
 
-    const originalRoles = ref([]);
     const originalProjects = ref([]);
     const originalRegions = ref([]);
 
-    const roleIdMap = {
-      2: '主管',
-      3: '销售',
+    const roleLevelMap = {
       4: '高阶',
       5: '中阶',
-    };
-
-    const permissionIdMap = {
-      1: '一级抽佣',
-      2: '二级抽佣',
-      3: '三级抽佣',
-    };
-
-    const projectLevelMap = {
-      1: '高阶',
-      2: '中阶',
-      3: '低阶',
+      6: '初阶'
     };
 
     const fetchData = async () => {
@@ -384,30 +268,8 @@ export default {
         if (response.data.success) {
           const data = response.data.data;
 
-          // 处理角色权限
-          roles.value = data.rolePermissions
-            .filter(role => role.roleId in roleIdMap)
-            .sort((a, b) => a.roleId - b.roleId)
-            .flatMap(role => {
-              role.permissionDTOs.sort((a, b) => a.permissionId - b.permissionId);
-              return role.permissionDTOs.map((permission, index) => ({
-                roleId: role.roleId,
-                roleName: roleIdMap[role.roleId],
-                permissionId: permission.permissionId,
-                permissionName: permissionIdMap[permission.permissionId],
-                rate1: permission.rate1,
-                rate2: permission.rate2,
-                isEnabled: permission.isEnabled,
-                isEditing: false,
-                original: { ...permission },
-                isFirst: index === 0,
-              }));
-            });
-
-          originalRoles.value = JSON.parse(JSON.stringify(roles.value));
-
           // 处理项目
-          projects.value = data.projects.map(project => ({
+          projects.value = data.projectDTOs.map(project => ({
             ...project,
             isEditing: false,
             original: { ...project },
@@ -415,7 +277,7 @@ export default {
           originalProjects.value = JSON.parse(JSON.stringify(projects.value));
 
           // 处理地区
-          regions.value = data.regions
+          regions.value = data.regionProjectsDTOs
           .sort((a, b) => a.regionId - b.regionId)
           .flatMap(region => {
             region.regionProjectDTOs.sort((a, b) => a.projectId - b.projectId);
@@ -767,7 +629,7 @@ export default {
       updateRegion,
       deleteRegion,
       regionSpanMethod,
-      projectLevelMap,
+      roleLevelMap,
       addRegion
     };
   },

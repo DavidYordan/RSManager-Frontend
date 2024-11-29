@@ -58,6 +58,7 @@
         <el-menu-item disabled v-if="[1, 8].includes(store.roleId)" index="/workspace/financial-management/to-do">{{ $t('sidebar.toDo') }}</el-menu-item>
         <el-menu-item disabled v-if="[1, 8].includes(store.roleId)" index="/workspace/financial-management/withdraw">{{ $t('sidebar.withdraw') }}</el-menu-item>
         <el-menu-item v-if="[1, 8].includes(store.roleId)" index="/workspace/financial-management/query">{{ $t('sidebar.query') }}</el-menu-item>
+        <el-menu-item v-if="[1, 8].includes(store.roleId)" index="/workspace/financial-management/view-payment-account">收款账户</el-menu-item>
       </el-sub-menu>
 
       <!-- 数据分析 (Data Analysis) -->

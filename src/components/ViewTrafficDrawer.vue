@@ -1,7 +1,7 @@
 <template>
   <el-drawer
     v-model="drawerVisible"
-    :title="t('ViewTrafficDrawer.title')"
+    title="流量详情"
     :with-header="true"
     size="70%"
     direction="ltr"
@@ -13,15 +13,15 @@
         <div class="tables-wrapper">
           <!-- 左侧表格 -->
           <el-table :data="leftMainData" :border="true" :show-header="false" stripe class="left-table">
-            <el-table-column prop="label" :label="t('ViewTrafficDrawer.columns.field')"></el-table-column>
-            <el-table-column prop="value" :label="t('ViewTrafficDrawer.columns.value')" show-overflow-tooltip>
+            <el-table-column prop="label" label="字段"></el-table-column>
+            <el-table-column prop="value" label="值" show-overflow-tooltip>
               <template #default="scope">
                 <template v-if="scope.row.key === 'uniqueId'">
                   <div style="display: flex; align-items: center; gap: 10px;">
                     <span>{{ scope.row.value }}</span>
                     <el-button
                       type="primary"
-                      size="mini"
+                      size="small"
                       @click="jumpToTikTokAccount(scope.row.value)"
                     >
                       主页
@@ -46,8 +46,8 @@
 
           <!-- 右侧表格 -->
           <el-table :data="rightMainData" :border="true" :show-header="false" stripe class="right-table">
-            <el-table-column prop="label" :label="t('ViewTrafficDrawer.columns.field')"></el-table-column>
-            <el-table-column prop="value" :label="t('ViewTrafficDrawer.columns.value')" show-overflow-tooltip>
+            <el-table-column prop="label" label="字段"></el-table-column>
+            <el-table-column prop="value" label="值" show-overflow-tooltip>
               <template #default="scope">
                 <template v-if="scope.row.key === 'updatedAt'">
                   {{ getRelativeTime(scope.row.value) }}
@@ -96,7 +96,7 @@
             <template #default="scope">
               <el-button
                 type="primary"
-                size="mini"
+                size="small"
                 @click="jumpToTikTokVideo(scope.row)"
               >
                 观看
@@ -131,46 +131,37 @@ export default {
       trafficsData.value = null;
     };
 
-    const roleIdToChinese = (roleId) => {
-      const roles = {
-        4: '高阶学员',
-        5: '中阶学员',
-        6: '初阶学员',
-      };
-      return roles[roleId] || '未知';
-    };
-
     const leftMainData = computed(() => {
       return [
-        { key: 'userId', label: t('ViewTrafficDrawer.fields.userId'), value: trafficsData.value?.userId || '-' },
-        { key: 'fullname', label: t('ViewTrafficDrawer.fields.fullname'), value: trafficsData.value?.fullname || '-' },
-        { key: 'link', label: t('ViewTrafficDrawer.fields.link'), value: trafficsData.value?.link || '-' },
-        { key: 'regionName', label: t('ViewTrafficDrawer.fields.regionName'), value: trafficsData.value?.regionName || '-' },
-        { key: 'uniqueId', label: t('ViewTrafficDrawer.fields.uniqueId'), value: trafficsData.value?.uniqueId || '-' },
-        { key: 'followingCount', label: t('ViewTrafficDrawer.fields.followingCount'), value: trafficsData.value?.followingCount || '-' },
-        { key: 'heartCount', label: t('ViewTrafficDrawer.fields.heartCount'), value: trafficsData.value?.heartCount || '-' },
-        { key: 'teacherFullname', label: t('ViewTrafficDrawer.fields.teacherFullname'), value: trafficsData.value?.teacherFullname || '-' },
-        { key: 'comments', label: t('ViewTrafficDrawer.fields.comments'), value: trafficsData.value?.comments || '-' },
-        { key: 'platformId', label: t('ViewTrafficDrawer.fields.platformId'), value: trafficsData.value?.platformId || '-' },
-        { key: 'inviterFullname', label: t('ViewTrafficDrawer.fields.inviterFullname'), value: trafficsData.value?.inviterFullname || '-' },
-        { key: 'managerFullname', label: t('ViewTrafficDrawer.fields.managerFullname'), value: trafficsData.value?.managerFullname || '-' },
+        { key: 'userId', label: "用户ID", value: trafficsData.value?.userId || '-' },
+        { key: 'fullname', label: "姓名", value: trafficsData.value?.fullname || '-' },
+        { key: 'link', label: "推广链接", value: trafficsData.value?.link || '-' },
+        { key: 'regionName', label: "地区", value: trafficsData.value?.regionName || '-' },
+        { key: 'uniqueId', label: "tiktok账号", value: trafficsData.value?.uniqueId || '-' },
+        { key: 'followingCount', label: "关注数", value: trafficsData.value?.followingCount},
+        { key: 'heartCount', label: "点赞数", value: trafficsData.value?.heartCount || '-' },
+        { key: 'teacherFullname', label: "导师姓名", value: trafficsData.value?.teacherFullname || '-' },
+        { key: 'comments', label: "爬取状态", value: trafficsData.value?.comments || '-' },
+        { key: 'platformId', label: "平台Id", value: trafficsData.value?.platformId || '-' },
+        { key: 'inviterFullname', label: "邀请人姓名", value: trafficsData.value?.inviterFullname || '-' },
+        { key: 'managerFullname', label: "管理人姓名", value: trafficsData.value?.managerFullname || '-' },
       ];
     });
 
     const rightMainData = computed(() => {
       return [
-        { key: 'username', label: t('ViewTrafficDrawer.fields.username'), value: trafficsData.value?.username || '-' },
-        { key: 'roleId', label: t('ViewTrafficDrawer.fields.roleId'), value: roleIdToChinese(trafficsData.value?.roleId) },
-        { key: 'invitationCode', label: t('ViewTrafficDrawer.fields.platformCode'), value: trafficsData.value?.invitationCode || '-' },
-        { key: 'platformInviteCount', label: t('ViewTrafficDrawer.fields.platformInviteCount'), value: trafficsData.value?.platformInviteCount || '-' },
-        { key: 'nickname', label: t('ViewTrafficDrawer.fields.nickname'), value: trafficsData.value?.nickname || '-' },
-        { key: 'followerCount', label: t('ViewTrafficDrawer.fields.followerCount'), value: trafficsData.value?.followerCount || '-' },
-        { key: 'videoCount', label: t('ViewTrafficDrawer.fields.videoCount'), value: trafficsData.value?.videoCount || '-' },
-        { key: 'teacherName', label: t('ViewTrafficDrawer.fields.teacherName'), value: trafficsData.value?.teacherName || '-' },
-        { key: 'updatedAt', label: t('ViewTrafficDrawer.fields.updatedAt'), value: trafficsData.value?.updatedAt || '-' },
-        { key: 'risk', label: t('ViewTrafficDrawer.fields.risk'), value: trafficsData.value?.risk },
-        { key: 'inviterName', label: t('ViewTrafficDrawer.fields.inviterName'), value: trafficsData.value?.inviterName || '-' },
-        { key: 'managerName', label: t('ViewTrafficDrawer.fields.managerName'), value: trafficsData.value?.managerName || '-' },
+        { key: 'username', label: "用户名", value: trafficsData.value?.username || '-' },
+        { key: 'roleId', label: "角色", value: trafficsData.value?.roleName || '-' },
+        { key: 'invitationCode', label: "平台邀请码", value: trafficsData.value?.invitationCode || '-' },
+        { key: 'platformInviteCount', label: "平台邀请人数", value: trafficsData.value?.platformInviteCount || '-' },
+        { key: 'nickname', label: "Tiktok昵称", value: trafficsData.value?.nickname || '-' },
+        { key: 'followerCount', label: "粉丝数", value: trafficsData.value?.followerCount || '-' },
+        { key: 'videoCount', label: "视频数", value: trafficsData.value?.videoCount || '-' },
+        { key: 'teacherName', label: "导师账号", value: trafficsData.value?.teacherName || '-' },
+        { key: 'updatedAt', label: "爬取时间", value: trafficsData.value?.updatedAt || '-' },
+        { key: 'risk', label: "链接风险", value: trafficsData.value?.risk },
+        { key: 'inviterName', label: "邀请人账号", value: trafficsData.value?.inviterName || '-' },
+        { key: 'managerName', label: "管理人账号", value: trafficsData.value?.managerName || '-' },
       ];
     });
 
@@ -186,33 +177,35 @@ export default {
       { prop: 'createTime', label: '发布时间' },
     ];
 
-    const copyToClipboard = (text) => {
-      if (!text || text === '-') {
-        ElMessage.warning('无有效内容可复制');
-        return;
-      }
-
-      // 创建一个隐藏的文本输入框
-      const input = document.createElement('textarea');
-      input.value = text;
-      document.body.appendChild(input);
-
-      // 选中并复制文本
-      input.select();
-      try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-          ElMessage.success('复制成功');
-        } else {
-          ElMessage.error('复制失败，请重试');
+    const copyToClipboard = async (text) => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          ElMessage.success("复制成功！");
+        } catch (err) {
+          console.error("Clipboard API 复制失败:", err);
+          ElMessage.error("复制失败，请手动复制");
         }
-      } catch (err) {
-        ElMessage.error('复制失败，请检查浏览器支持情况');
-        console.error('Fallback: Oops, unable to copy', err);
+      } else {
+        // 如果 Clipboard API 不支持，使用备用方案
+        fallbackCopyText(text);
       }
+    };
 
-      // 清理文本输入框
-      document.body.removeChild(input);
+    const fallbackCopyText = (text) => {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        ElMessage.success("复制成功！");
+      } catch (err) {
+        console.error("复制失败:", err);
+        ElMessage.error("复制失败，请手动复制");
+      }
+      document.body.removeChild(textArea);
     };
 
     // 验证推广链接
@@ -290,12 +283,12 @@ export default {
       return result.length > 0 ? result.join('') : '刚刚';
     };
 
-    // 确保 tiktokVideoDetailsDTO 是一个数组，并按 createTime 降序排列
+    // 确保 tiktokVideoDetailDTOs 是一个数组，并按 createTime 降序排列
     const formattedTikTokVideos = computed(() => {
-      if (Array.isArray(trafficsData.value?.tiktokVideoDetailsDTO)) {
-        return trafficsData.value.tiktokVideoDetailsDTO.slice().sort((a, b) => b.createTime - a.createTime);
-      } else if (trafficsData.value?.tiktokVideoDetailsDTO) {
-        return [trafficsData.value.tiktokVideoDetailsDTO];
+      if (Array.isArray(trafficsData.value?.tiktokVideoDetailDTOs)) {
+        return trafficsData.value.tiktokVideoDetailDTOs.slice().sort((a, b) => b.createTime - a.createTime);
+      } else if (trafficsData.value?.tiktokVideoDetailDTOs) {
+        return [trafficsData.value.tiktokVideoDetailDTOs];
       }
       return [];
     });
@@ -337,6 +330,7 @@ export default {
       isLinkValid,
       jumpToTikTokAccount,
       jumpToTikTokVideo,
+      fallbackCopyText
     };
   },
 };

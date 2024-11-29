@@ -200,8 +200,8 @@
           </template>
         </el-table-column>
 
-        <!-- 链接风险 risk -->
-        <el-table-column prop="risk" :label="$t('ViewTraffics.table.risk')"></el-table-column>
+        <!-- 链接风险 -->
+        <el-table-column prop="risk" label="链接风险"></el-table-column>
 
         <el-table-column
           :label="$t('ViewTraffics.table.actions')"
