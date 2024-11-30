@@ -15,7 +15,7 @@
             :model="form"
             ref="enrollForm"
             :rules="rules"
-            label-width="140px"
+            label-width="110px"
           >
             <!-- 第一行：邀请人姓名 -->
             <el-row :gutter="20">
@@ -45,13 +45,7 @@
                       :disabled="isInviterValidated || isInviterLoading || isSubmitting"
                       :loading="isInviterLoading"
                     >
-                      <span>
-                        {{
-                          isInviterValidated
-                            ? "验证通过"
-                            : "验证邀请人账号"
-                        }}
-                      </span>
+                      <span>{{ isInviterValidated ? "通过" : "验证" }}</span>
                     </el-button>
                     <el-icon
                       v-if="isInviterValidated"
@@ -94,13 +88,7 @@
                       :disabled="isManagerValidated || isManagerLoading || isSubmitting"
                       :loading="isManagerLoading"
                     >
-                      <span>
-                        {{
-                          isManagerValidated
-                            ? "验证通过"
-                            : "验证管理者账号"
-                        }}
-                      </span>
+                      <span>{{ isManagerValidated ? "通过" : "验证"}}</span>
                     </el-button>
                     <el-icon
                       v-if="isManagerValidated"
@@ -139,13 +127,7 @@
                       :disabled="isFullnameValidated || isFullnameLoading || isSubmitting"
                       :loading="isFullnameLoading"
                     >
-                      <span>
-                        {{
-                          isFullnameValidated
-                            ? "验证通过"
-                            : "验证学员姓名"
-                        }}
-                      </span>
+                      <span>{{ isFullnameValidated ? "通过" : "验证" }}</span>
                     </el-button>
                     <el-icon
                       v-if="isFullnameValidated"
@@ -174,7 +156,7 @@
                   >
                     <el-option
                       v-for="option in regionOptions"
-                      :key="option.regionName"
+                      :key="option.regionCode"
                       :label="option.regionName"
                       :value="option.regionName"
                     />
@@ -250,16 +232,16 @@
               </el-col>
               <el-col :span="12">
                 <el-form-item
-                  :label="$t('enrollScholar.scholarLevel')"
-                  prop="scholarLevel"
+                  :label="$t('enrollScholar.roleId')"
+                  prop="roleId"
                 >
                   <el-select
-                    v-model="form.scholarLevel"
+                    v-model="form.roleId"
                     :disabled="isSubmitting"
-                    :placeholder="$t('enrollScholar.selectScholarLevel')"
+                    placeholder="选择角色"
                   >
                     <el-option
-                      v-for="option in scholarLevelOptions"
+                      v-for="option in roleOptions"
                       :key="option.value"
                       :label="option.label"
                       :value="option.value"
@@ -337,6 +319,30 @@
                     value-format="YYYY-MM-DD"
                     style="width: 100%;"
                   ></el-date-picker>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <!-- 第九行: 收款账户 -->
+            <el-row :gutter="20">
+              <el-col :span="24">
+                <el-form-item
+                  label="收款账户"
+                  prop="paymentAccount"
+                  required
+                >
+                  <el-select
+                    v-model="form.paymentAccount"
+                    :disabled="isSubmitting"
+                    placeholder="选择收款账户"
+                  >
+                    <el-option
+                      v-for="option in paymentAccountOptions"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value"
+                    />
+                  </el-select>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -433,7 +439,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, watch, effect } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useStore } from '../store/index.js';
 import { useI18n } from 'vue-i18n'
 import { checkInviter, userExists } from '@/api/user'
@@ -443,7 +449,8 @@ import {
   checkFullname as apiCheckFullname,
 } from '@/api/application'
 import { fetchAllRegions as apifetchAllRegions } from '@/api/utils'
-import { ElMessage, ElLoading } from 'element-plus'
+import { searchPaymentAccount as apiSearchPaymentAccount } from '@/api/finance'
+import { ElMessage } from 'element-plus'
 
 // 导入 Element Plus 的 Check 图标
 import { Check } from '@element-plus/icons-vue'
@@ -460,7 +467,7 @@ export default {
     // 表单模型（移除projectAmount和多个TikTok账号）
     const form = reactive({
       fullname: '',
-      scholarLevel: null,
+      roleId: null,
       projectName: '',
       projectAmount: '',
       rateA: '',
@@ -545,8 +552,8 @@ export default {
       fullname: [
         { required: true, message: t('enrollScholar.PleaseEnterFullname'), trigger: 'blur' }
       ],
-      scholarLevel: [
-        { required: true, message: t('enrollScholar.PleaseSelectScholarLevel'), trigger: 'change' }
+      roleId: [
+        { required: true, message: "请选择角色", trigger: 'change' }
       ],
       projectName: [
         { required: true, message: t('enrollScholar.PleaseEnterProjectName'), trigger: 'blur' }
@@ -574,7 +581,7 @@ export default {
         { required: true, message: t('enrollScholar.PleaseSelectRegion'), trigger: 'change' }
       ],
       currencyName: [
-        { required: true, message: t('enrollScholar.PleaseEnterCurrencyName'), trigger: 'blur' }
+        { required: true, message: "请选择币种", trigger: 'blur' }
       ]
     }
 
@@ -801,7 +808,7 @@ export default {
       const formData = new FormData();
 
       formData.append('fullname', form.fullname);
-      formData.append('roleId', form.scholarLevel);
+      formData.append('roleId', form.roleId);
       formData.append('projectName', form.projectName);
       formData.append('projectAmount', parseFloat(form.projectAmount));
       formData.append('inviterName', form.inviterName);
@@ -811,9 +818,10 @@ export default {
       formData.append('paymentMethod', form.paymentMethod);
       formData.append('paymentAmount', parseFloat(form.paymentAmount));
       formData.append('fee', parseFloat(form.fee));
-      formData.append('paymentTime', formattedPaymentTime);
+      formData.append('paymentDate', formattedPaymentTime);
       formData.append('regionName', form.regionName);
       formData.append('currencyName', form.currencyName);
+      formData.append('paymentAccountId', form.paymentAccount);
       formData.append('comments', form.comments);
 
       form.files.forEach(file => {
@@ -866,14 +874,14 @@ export default {
         };
         const response = await apiSubmitApplication(applicationData)
         if (response.data.success) {
-          ElMessage.success(t('enrollScholar.AuditSubmittedSuccessfully'))
-          ElMessage.info(t('enrollScholar.WaitingForFinanceReview'))
+          ElMessage.success("提交审核成功")
+          ElMessage.info("等待财务审核")
           resetForm()
         } else {
-          ElMessage.error(t('enrollScholar.AuditSubmissionFailed'))
+          ElMessage.error("提交审核失败")
         }
       } catch (error) {
-        ElMessage.error(t('enrollScholar.AuditSubmissionFailed'))
+        ElMessage.error("提交审核失败" + error)
       } finally {
         isSubmitting.value = false
       }
@@ -904,14 +912,8 @@ export default {
       isInviterValidated.value = false
       isManagerValidated.value = true
       isFullnameValidated.value = false
-      if (enrollForm.value) {
-        enrollForm.value.resetFields()
-      }
-      form.regionName = regionOptions.value[0].regionName
-      form.currencyName = regionOptions.value[0].currencyName
-      form.scholarLevel = 6
-      form.projectName = projectNameMap.value[3]
-      form.projectAmount = projectMap.value[3][form.currencyName]
+      form.regionName = "美国"
+      form.roleId = 6
     }
 
     // 监听邀请人姓名的变化
@@ -935,20 +937,20 @@ export default {
     /**
      * 学员等级选项
      */
-    const scholarLevelOptions = ref([
-      { value: 4, label: t('enrollScholar.advanced') },
-      { value: 5, label: t('enrollScholar.intermediate') },
-      { value: 6, label: t('enrollScholar.beginner') },
+    const roleOptions = ref([
+      { value: 4, label: "高阶学员" },
+      { value: 5, label: "中阶学员" },
+      { value: 6, label: "初阶学员" }
     ])
 
     /**
      * 计算 rateOptions 选择项
      */
      const computedRateOptions = computed(() => {
-      if (form.scholarLevel === 6) return []
+      if (form.roleId === 6) return []
 
-      if (!form.scholarLevel || !rateOptions[form.scholarLevel]) return []
-      const options = rateOptions[form.scholarLevel]
+      if (!form.roleId || !rateOptions[form.roleId]) return []
+      const options = rateOptions[form.roleId]
       return Object.keys(options).map(key => ({
         key: key,
         label: `${options[key].rateA}${options[key].rateB ? ' + ' + options[key].rateB : ''}`
@@ -956,15 +958,15 @@ export default {
     })
 
     /**
-     * 监听 scholarLevel 和 rateOption 变化，设置 rateA 和 rateB
+     * 监听 roleId 和 rateOption 变化，设置 rateA 和 rateB
      */
-    watch([() => form.scholarLevel, () => form.rateOption], ([newLevel, newOption], [oldLevel, oldOption]) => {
+    watch([() => form.roleId, () => form.rateOption], ([newLevel, newOption], [oldLevel, oldOption]) => {
       if (newLevel === 6) {
         form.rateA = ''
         form.rateB = ''
         form.rateOption = ''
       } else if (newLevel !== oldLevel && rateOptions[newLevel]) {
-        // 仅在 scholarLevel 变化时设置为第一个选项
+        // 仅在 roleId 变化时设置为第一个选项
         const firstOptionKey = Object.keys(rateOptions[newLevel])[0]
         form.rateOption = firstOptionKey
         form.rateA = rateOptions[newLevel][firstOptionKey].rateA
@@ -979,11 +981,6 @@ export default {
       }
     })
 
-    /**
-     * 项目名称映射
-     */
-    const projectNameMap = ref({})
-
     // 地区数据
     const regionOptions = ref([])
 
@@ -994,25 +991,40 @@ export default {
     const projectMap = ref({})
 
     // 监听学员等级变化，更新项目名称和金额
-    watch(() => form.scholarLevel, (newVal) => {
-      const project = projectMap.value[newVal-3]
-      form.projectAmount = project ? project[form.currencyName] : ''
-      form.projectName = project ? projectNameMap.value[newVal-3] : ''
+    watch(() => form.roleId, (newVal) => {
+        const region = regionOptions.value.find(region => region.roleId === form.roleId && region.regionName === form.regionName && region.currencyName === form.currencyName)
+        if (region) {
+          form.projectName = region.projectName
+        } else {
+          const region = regionOptions.value.find(region => region.roleId === form.roleId && region.currencyName === form.currencyName)
+          form.projectName = region.projectName
+        }
+        updateProjectInfo()
     })
 
     // 监听地区变化，自动填充货币
     watch(() => form.regionName, (newRegionName) => {
-      const selectedRegion = regionOptions.value.find(region => region.regionName === newRegionName)
-      if (selectedRegion) {
-        form.currencyName = selectedRegion.currencyName
-      }
+        const region = regionOptions.value.find(region => region.regionName === newRegionName)
+        form.currencyName = region.currencyName
+        updateProjectInfo()
     })
 
     // 监听货币变化，自动更新项目金额
     watch(() => form.currencyName, (newCurrencyName) => {
-      const project = projectMap.value[form.scholarLevel-3]
-      form.projectAmount = project ? project[newCurrencyName] : ''
+        updateProjectInfo()
     })
+
+    const updateProjectInfo = () => {
+      const uniqueId1 = form.regionName + form.currencyName + form.roleId + form.projectName
+      const uniqueId2 = form.currencyName + form.roleId + form.projectName
+      if (projectMap[uniqueId1]) {
+        form.projectName = projectMap[uniqueId1].projectName
+        form.projectAmount = projectMap[uniqueId1].projectAmount
+      } else if (projectMap[uniqueId2]) {
+        form.projectName = projectMap[uniqueId2].projectName
+        form.projectAmount = projectMap[uniqueId2].projectAmount
+      }
+    }
 
     /**
      * 获取所有类型数据（地区和项目名称）
@@ -1026,8 +1038,9 @@ export default {
           // 处理地区数据
           regionOptions.value = data.map(region => ({
             regionName: region.regionName,
-            currencyName: region.currencyName,
             regionCode: region.regionCode,
+            roleId: region.roleId,
+            currencyName: region.currencyName,
             currencyCode: region.currencyCode,
             projectId: region.projectId,
             projectName: region.projectName,
@@ -1035,46 +1048,67 @@ export default {
           }))
 
           // 提取所有货币选项
-          currencyNameOptions.value = [
-            ...new Set(data.map(region => region.currencyName))
-          ]
+          currencyNameOptions.value = [...new Set(data.map(region => region.currencyName))]
 
           // 处理项目名称和金额映射
           data.forEach(region => {
-            region.regionProjectDTOs.forEach(project => {
-              if (!projectMap.value[project.projectId]) {
-                projectMap.value[project.projectId] = {}
+              const uniqueId1 = region.regionName + region.currencyName + region.roleId + region.projectName
+              const uniqueId2 = region.currencyName + region.roleId + region.projectName
+              if (!projectMap[uniqueId1]) {
+                projectMap[uniqueId1] = {}
+                projectMap[uniqueId1]['projectName'] = region.projectName
+                projectMap[uniqueId1]['projectAmount'] = region.projectAmount
+              } else {
+                  projectMap[uniqueId1]['projectName'] = region.projectName
+                  projectMap[uniqueId1]['projectAmount'] = region.projectAmount
               }
-              projectMap.value[project.projectId][region.currencyName] = project.projectAmount
-            })
+              if (!projectMap[uniqueId2]) {
+                projectMap[uniqueId2] = {}
+                projectMap[uniqueId2]['projectName'] = region.projectName
+                projectMap[uniqueId2]['projectAmount'] = region.projectAmount
+              } else {
+                  projectMap[uniqueId2]['projectName'] = region.projectName
+                  projectMap[uniqueId2]['projectAmount'] = region.projectAmount
+              }
           })
 
-          // 提取唯一项目
-          const projectSet = new Set()
-          data.forEach(region => {
-            region.regionProjectDTOs.forEach(project => {
-              projectSet.add(JSON.stringify({ projectId: project.projectId, projectName: project.projectName }))
-            })
-          })
-
-          // projectNameMap
-          projectSet.forEach(project => {
-            const projectObj = JSON.parse(project)
-            projectNameMap.value[projectObj.projectId] = projectObj.projectName})
-
-          // 初始化项目名称和金额
-          form.regionName = regionOptions.value[0].regionName
-          form.scholarLevel = 6
+          // 初始化默认选项
+          form.regionName = "美国"
+          form.roleId = 6
         } else {
-          ElMessage.error(t('enrollScholar.FetchTypesFailed'))
+          ElMessage.error("获取类型数据失败")
         }
       } catch (error) {
-        ElMessage.error(t('enrollScholar.FetchTypesFailed'))
+        ElMessage.error("获取类型数据失败:" + error)
+      }
+    }
+
+    const paymentAccountOptions = ref([])
+    const paymentAccountMap = ref({})
+
+    const fetchPaymentAccounts = async () => {
+      try {
+        const response = await apiSearchPaymentAccount({ accountStatus: true})
+        if (response.data.success) {
+          const data = response.data.data.content
+          paymentAccountOptions.value = data.map(account => ({
+            label: account.accountRegion + '-' + account.accountName + '-' + account.accountBank + '-' + account.accountNumber + '-' + account.accountComments,
+            value: account.accountId
+          }))
+          data.forEach(account => {
+            paymentAccountMap.value[account.accountId] = account
+          })
+        } else {
+          ElMessage.error("获取支付账户失败")
+        }
+      } catch (error) {
+        ElMessage.error("获取支付账户失败:" + error)
       }
     }
 
     onMounted(() => {
       loadAllTypes()
+      fetchPaymentAccounts()
     })
 
     return {
@@ -1097,6 +1131,7 @@ export default {
       canSaveApplication,
       canSubmitAudit,
       currencyNameOptions,
+      paymentAccountOptions,
       inviterNameError,
       managerNameError,
       fullnameError,
@@ -1113,7 +1148,7 @@ export default {
       isFullnameLoading,
       fileError,
       regionOptions,
-      scholarLevelOptions,
+      roleOptions,
       computedRateOptions
     }
   }

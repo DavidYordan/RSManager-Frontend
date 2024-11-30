@@ -236,7 +236,7 @@
 <script>
 import { ref, reactive, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { addRole } from '@/api/application' // 假设的保存 API
+import { addRoleEditing } from '@/api/application' // 假设的保存 API
 import { fetchAllRegions as apifetchAllRegions } from '@/api/utils'
 import { ElMessage } from 'element-plus'
 
@@ -364,7 +364,7 @@ export default {
       }
 
       try {
-        const response = await addRole(saveData)
+        const response = await addRoleEditing(saveData)
         if (response.data.success) { // 根据 ApiResponse 结构调整
           ElMessage.success("保存成功")
           canSaveApplication.value = false

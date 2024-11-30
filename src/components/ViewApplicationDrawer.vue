@@ -64,14 +64,14 @@
                     {{ processStatusOptions[applicationData.processStatus] }}
                   </span>
                 </el-form-item>
-                <el-form-item :label="t('ViewApplicationDrawer.fields.currency')">
-                  <span>{{ applicationData.currency }}</span>
+                <el-form-item :label="t('ViewApplicationDrawer.fields.currencyName')">
+                  <span>{{ applicationData.currencyName }}</span>
                 </el-form-item>
                 <el-form-item :label="t('ViewApplicationDrawer.fields.projectAmount')">
-                  <span>{{ formatCurrency(applicationData.projectAmount, applicationData.currency) }}</span>
+                  <span>{{ formatCurrency(applicationData.projectAmount, applicationData.currencyName) }}</span>
                 </el-form-item>
-                <el-form-item :label="t('ViewApplicationDrawer.fields.paidStr')">
-                  <span v-html=applicationData.paidStr></span>
+                <el-form-item label="已缴纳学费">
+                  <span v-html="getPaidStr"></span>
                 </el-form-item>
                 <el-form-item :label="t('ViewApplicationDrawer.fields.rateB')">
                   <span>{{ applicationData.rateB }}</span>
@@ -80,10 +80,10 @@
                   <span>{{ applicationData.managerName }}</span>
                 </el-form-item>
                 <el-form-item :label="t('ViewApplicationDrawer.fields.inviterName')">
-                  <span>{{ applicationData.inviterName }}</span>
+                  <span>{{ applicationData.inviterName == null ? applicationData.initInviterName : applicationData.inviterName }}</span>
                 </el-form-item>
-                <el-form-item :label="t('ViewApplicationDrawer.fields.createrFullname')">
-                  <span>{{ applicationData.createrFullname }}</span>
+                <el-form-item label="用户ID">
+                  <span>{{ applicationData.userId }}</span>
                 </el-form-item>
                 <el-form-item :label="t('ViewApplicationDrawer.fields.createdAt')">
                   <span>{{ applicationData.createdAt }}</span>
@@ -105,49 +105,68 @@
         </el-tab-pane>
 
         <!-- Payment Records Tab -->
-        <el-tab-pane :label="t('ViewApplicationDrawer.tabs.paymentRecords')" name="paymentRecords">
+        <el-tab-pane label="支付记录" name="paymentRecords">
           <el-table
-            :data="applicationData.applicationPaymentRecordDtos"
+            :data="applicationData.applicationPaymentRecordDTOs"
             style="width: 100%"
             :border="true"
             stripe
             v-loading="isLoading"
           >
+            <el-table-column prop="projectName" label="项目名称" ></el-table-column>
+            <el-table-column prop="projectAmount" label="项目金额">
+              <template #default="scope">
+                {{ formatCurrency(scope.row.projectAmount, scope.row.projectCurrencyName) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="paymentMethod" label="付款方式"></el-table-column>
             <el-table-column
               prop="paymentAmount"
-              :label="t('ViewApplicationDrawer.fields.paymentAmount')"
+              label="支付金额"
             >
               <template #default="scope">
-                {{ formatCurrency(scope.row.paymentAmount, scope.row.currency) }}
+                {{ formatCurrency(scope.row.paymentAmount, scope.row.currencyName) }}
               </template>
             </el-table-column>
             <el-table-column
               prop="fee"
-              :label="t('ViewApplicationDrawer.fields.fee')"
+              label="手续费"
             >
               <template #default="scope">
-                {{ formatCurrency(scope.row.fee, scope.row.currency) }}
+                {{ formatCurrency(scope.row.fee, scope.row.currencyName) }}
               </template>
             </el-table-column>
             <el-table-column
               prop="actual"
-              :label="t('ViewApplicationDrawer.fields.actual')"
+              label="实收金额"
             >
               <template #default="scope">
-                {{ formatCurrency(scope.row.actual, scope.row.currency) }}
+                {{ formatCurrency(scope.row.actual, scope.row.currencyName) }}
               </template>
             </el-table-column>
             <el-table-column
               prop="paymentTime"
-              :label="t('ViewApplicationDrawer.fields.paymentTime')"
+              label="付款日期"
             >
               <template #default="scope">
                 {{ scope.row.paymentTime }}
               </template>
             </el-table-column>
             <el-table-column
+              prop="paymentAccountStr"
+              label="收款账户"
+            >
+              <template #default="scope">
+                <span
+                    @click="copyToClipboard(scope.row.paymentAccountStr)"
+                    :style="{ cursor: 'pointer' }"
+                    title="点击复制"
+                >{{ scope.row.paymentAccountStr }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
               prop="status"
-              :label="t('ViewApplicationDrawer.fields.status')"
+              label="审核状态"
             >
               <template #default="scope">
                 <span :class="paymentStatusClass(scope.row.status)">
@@ -155,10 +174,11 @@
                 </span>
               </template>
             </el-table-column>
+            <el-table-column prop="comments" label="备注"></el-table-column>
 
             <el-table-column
               prop="paymentFileSummary"
-              :label="t('ViewApplicationDrawer.fields.paymentFileSummary')"
+              label="文件摘要"
             >
               <template #default="scope">
                 <div v-if="scope.row.paymentFileSummary && scope.row.paymentFileSummary.fileCount > 0">
@@ -177,7 +197,7 @@
                     </el-link>
                   </span>
                 </div>
-                <span v-else>{{ t('ViewApplicationDrawer.noFiles') }}</span>
+                <span v-else>没有可用的文件</span>
               </template>
             </el-table-column>
 
@@ -233,22 +253,22 @@
         <!-- Process Flow Tab -->
         <el-tab-pane :label="t('ViewApplicationDrawer.tabs.flowRecords')" name="flowRecords">
           <el-table
-            :data="applicationData.applicationFlowRecordDtos"
+            :data="applicationData.applicationFlowRecordDTOs"
             style="width: 100%"
             :border="true"
             stripe
           >
             <el-table-column
               prop="action"
-              :label="t('ViewApplicationDrawer.fields.action')"
+              label="操作"
             ></el-table-column>
             <el-table-column
-              prop="createrName"
-              :label="t('ViewApplicationDrawer.fields.performedBy')"
+              prop="createrFullname"
+              label="执行人"
             ></el-table-column>
             <el-table-column
               prop="createdAt"
-              :label="t('ViewApplicationDrawer.fields.performedAt')"
+              label="执行时间"
             >
               <template #default="scope">
                 {{ scope.row.createdAt }}
@@ -256,7 +276,7 @@
             </el-table-column>
             <el-table-column
               prop="comments"
-              :label="t('ViewApplicationDrawer.fields.comments')"
+              label="备注"
             ></el-table-column>
           </el-table>
         </el-tab-pane>
@@ -330,7 +350,7 @@
       @paymentAdded="handlePaymentAdded"
       :processId="processId"
       :currentRegionName="applicationData.regionName"
-      :currentCurrency="applicationData.currency"
+      :currentCurrencyName="applicationData.currencyName"
       :currentProjectName="actionData.projectName || applicationData.projectName"
       :currentProjectAmount="actionData.projectAmount || applicationData.projectAmount"
       :currentPaymentMethod="actionData.paymentMethod || applicationData.paymentMethod"
@@ -399,13 +419,15 @@ import {
   getAllFilesSummary,
   downloadFile,
   uploadContractFile,
-  updateRoleEditing as apiUpdateRoleEditing,
-  cancelUpdateRoleEditing as apiCancelUpdateRoleEditing,
-  submitRoleUpgrade as apiSubmitRoleUpgrade,
-  approveRoleUpgradeByFinance as apiApproveRoleUpgradeByFinance,
-  approveRoleUpgradeByManager as apiApproveRoleUpgradeByManager,
-  addRole as apiAddRole,
-  approveAddRole as apiApproveAddRole,
+  addRoleEditing as apiAddRoleEditing,
+  upgradeRoleEditing as apiUpgradeRoleEditing,
+  cancelRoleEditing as apiCancelRoleEditing,
+  saveAddRoleEditing as apiSaveAddRoleEditing,
+  saveUpgradeRoleEditing as apiSaveUpgradeRoleEditing,
+  submitAddRoleUpgrade as apiSubmitAddRoleUpgrade,
+  submitUpgradeRoleUpgrade as apiSubmitUpgradeRoleUpgrade,
+  approveRoleAddByFinance as apiApproveRoleAddByFinance,
+  approveRoleUpgradeByFinance as apiApproveRoleUpgradeByFinance
 } from '@/api/application';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AddPayment from '@/components/AddPayment.vue';
@@ -533,8 +555,8 @@ export default {
 
     const paymentStatusAllTrue = computed(() => {
       if (!applicationData.value) return false;
-      if (!applicationData.value.applicationPaymentRecordDtos) return false;
-      return applicationData.value.applicationPaymentRecordDtos.every(payment => payment.status);
+      if (!applicationData.value.applicationPaymentRecordDTOs) return false;
+      return applicationData.value.applicationPaymentRecordDTOs.every(payment => payment.status);
     });
 
     const paymentActions = (payment) => {
@@ -875,8 +897,8 @@ export default {
 
           // 特殊处理货币字段
           if (['projectAmount'].includes(field)) {
-            originalValue = formatCurrency(originalValue, applicationData.value.currency);
-            newValue = formatCurrency(newValue, applicationData.value.currency);
+            originalValue = formatCurrency(originalValue, applicationData.value.currencyName);
+            newValue = formatCurrency(newValue, applicationData.value.currencyName);
           }
 
           // 其他字段按需处理
@@ -908,8 +930,8 @@ export default {
       if (!applicationData.value) return;
 
       // Gather payment IDs
-      const paymentIds = applicationData.value.applicationPaymentRecordDtos
-        ? applicationData.value.applicationPaymentRecordDtos.map(payment => payment.paymentId)
+      const paymentIds = applicationData.value.applicationPaymentRecordDTOs
+        ? applicationData.value.applicationPaymentRecordDTOs.map(payment => payment.paymentId)
         : [];
 
       try {
@@ -922,7 +944,7 @@ export default {
         if (response.data.success) {
           // Map summaries back to payment records based on paymentId
           const paymentsSummaryDTOs = response.data.data.paymentsSummaryDTOs;
-          applicationData.value.applicationPaymentRecordDtos.forEach(payment => {
+          applicationData.value.applicationPaymentRecordDTOs.forEach(payment => {
             // Find the corresponding summary by paymentId
             const summary = paymentsSummaryDTOs.find(dto => dto.paymentId === payment.paymentId);
             payment.paymentFileSummary = summary
@@ -937,14 +959,14 @@ export default {
             : { fileCount: 0, filePaths: [] };
 
         } else {
-          applicationData.value.applicationPaymentRecordDtos.forEach(payment => {
+          applicationData.value.applicationPaymentRecordDTOs.forEach(payment => {
             payment.paymentFileSummary = { fileCount: 0, filePaths: [] };
           });
           applicationData.value.contractFileSummary = { fileCount: 0, filePaths: [] };
         }
       } catch (error) {
         console.error('Failed to fetch file summaries', error);
-        applicationData.value.applicationPaymentRecordDtos.forEach(payment => {
+        applicationData.value.applicationPaymentRecordDTOs.forEach(payment => {
           payment.paymentFileSummary = { fileCount: 0, filePaths: [] };
         });
         applicationData.value.contractFileSummary = { fileCount: 0, filePaths: [] };
@@ -983,12 +1005,12 @@ export default {
       }
     };
 
-    // Format currency
-    const formatCurrency = (value, currency) => {
+    // Format currencyName
+    const formatCurrency = (value, currencyName) => {
       if (value === null || value === undefined) {
         return '-';
       }
-      return `${Number(value).toLocaleString()} ${currency}`;
+      return `${Number(value).toLocaleString()} ${currencyName}`;
     };
 
     const paymentStatusClass = (status) => {
@@ -1213,6 +1235,22 @@ export default {
       }
     };
 
+    const getPaidStr = computed(() => {
+      if (!applicationData.value || !applicationData.value.applicationPaymentRecordDTOs) {
+        return "0";
+      }
+
+      const grouped = applicationData.value.applicationPaymentRecordDTOs.reduce((acc, payment) => {
+        const currencyName = payment.currencyName;
+        acc[currencyName] = (acc[currencyName] || 0) + payment.paymentAmount;
+        return acc;
+      }, {});
+
+      return Object.entries(grouped)
+        .map(([currencyName, total]) => `${total} ${currencyName}`)
+        .join("<br>");
+    });
+
     // Get file name from path
     const getFileName = (filePath) => {
       const parts = filePath.split('/');
@@ -1299,20 +1337,51 @@ export default {
       activeTab.value = tab.props.name;
     };
 
+    const copyToClipboard = async (text) => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          ElMessage.success("复制成功！");
+        } catch (err) {
+          console.error("Clipboard API 复制失败:", err);
+          ElMessage.error("复制失败，请手动复制");
+        }
+      } else {
+        // 如果 Clipboard API 不支持，使用备用方案
+        fallbackCopyText(text);
+      }
+    };
+
+    const fallbackCopyText = (text) => {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        ElMessage.success("复制成功！");
+      } catch (err) {
+        console.error("复制失败:", err);
+        ElMessage.error("复制失败，请手动复制");
+      }
+      document.body.removeChild(textArea);
+    };
+
     // Process Status options
     const processStatusOptions = {
-      '0': t('ViewApplications.status.0'),
-      '1': t('ViewApplications.status.1'),
-      '2': t('ViewApplications.status.2'),
-      '3': t('ViewApplications.status.3'),
-      '4': t('ViewApplications.status.4'),
-      '5': t('ViewApplications.status.5'),
-      '6': t('ViewApplications.status.6'),
-      '7': t('ViewApplications.status.7'),
+      '5': "支付中",
+      '1': "编辑中",
+      '2': "财务审核中",
+      '3': "链接申请中",
+      '4': "链接审核中",
+      '6': "结束",
+      '7': "归档",
+      '0': "取消",
+      '87': "补充角色编辑中",
+      '88': "补充角色财务审核中",
       '97': "升级角色编辑中",
-      '98': "升级角色财务审核中",
-      '99': "升级角色审核中",
-      '100': "补充角色审核中"
+      '98': "升级角色财务审核中"
     };
 
     // Colors for each status
@@ -1325,10 +1394,10 @@ export default {
       '5': '#FFD54F',  // In Payment - 金黄色，表示支付正在处理
       '6': '#66BB6A',  // Finished - 深绿色，代表流程已成功完成
       '7': '#BDBDBD',   // Archived - 深灰色，表示流程归档或已完成
-      '97': '#FFB74D',  // Role Upgrade Editing - 橙黄色，表示升级角色编辑中
-      '98': '#64B5F6',  // Role Upgrade Financial Review - 浅蓝色，表示升级角色财务审核中
-      '99': '#81C784',  // Role Upgrade Review - 浅绿色，表示升级角色审核中
-      '100': '#4DB6AC'  // Add Role Review - 蓝绿色，表示补充角色审核中
+      '87': '#FFB74D',  // Role Upgrade Editing - 橙黄色，表示升级角色编辑中
+      '88': '#64B5F6',  // Role Upgrade Financial Review - 浅蓝色，表示升级角色财务审核中
+      '97': '#81C784',  // Role Upgrade Review - 浅绿色，表示升级角色审核中
+      '98': '#4DB6AC'  // Add Role Review - 蓝绿色，表示补充角色审核中
     };
 
     return {
@@ -1387,7 +1456,10 @@ export default {
       processStatusOptions,
       processStatusColors,
       saveImage,
-      currentPaymentRecord
+      currentPaymentRecord,
+      getPaidStr,
+      copyToClipboard,
+      fallbackCopyText
     };
   }
 };

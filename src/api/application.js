@@ -251,37 +251,73 @@ export function validateInviter(inviterName) {
   });
 }
 
-// updateRoleEditing
-export function updateRoleEditing(data) {
+// addroleediting
+export function addRoleEditing(data) {
   return request({
-    url: `/application/updateroleediting`,
+    url: `/application/addroleediting`,
     method: 'post',
     data
   });
 }
 
-// submitRoleUpgrade
-export function submitRoleUpgrade(data) {
+// upgraderoleediting
+export function upgradeRoleEditing(data) {
   return request({
-    url: `/application/submitroleupgrade`,
+    url: `/application/upgraderoleediting`,
     method: 'post',
     data
   });
 }
 
-// cancelUpdateRoleEditing
-export function cancelUpdateRoleEditing(data) {
+// cancelroleediting
+export function cancelRoleEditing(data) {
   return request({
-    url: `/application/cancelupdateroleediting`,
+    url: `/application/cancelroleediting`,
     method: 'post',
     data
   });
 }
 
-// saveRoleEditing
-export function saveRoleEditing(data) {
+// saveaddroleediting
+export function saveAddRoleEditing(data) {
   return request({
-    url: `/application/saveroleediting`,
+    url: `/application/saveaddroleediting`,
+    method: 'post',
+    data
+  });
+}
+
+// saveupgraderoleediting
+export function saveUpgradeRoleEditing(data) {
+  return request({
+    url: `/application/saveupgraderoleediting`,
+    method: 'post',
+    data
+  });
+}
+
+// submitaddroleupgrade
+export function submitAddRoleUpgrade(data) {
+  return request({
+    url: `/application/submitaddroleupgrade`,
+    method: 'post',
+    data
+  });
+}
+
+// submitupgraderoleupgrade
+export function submitUpgradeRoleUpgrade(data) {
+  return request({
+    url: `/application/submitupgraderoleupgrade`,
+    method: 'post',
+    data
+  });
+}
+
+// approveRoleAddByFinance
+export function approveRoleAddByFinance(data) {
+  return request({
+    url: `/application/approveroleaddbyfinance`,
     method: 'post',
     data
   });
@@ -291,33 +327,6 @@ export function saveRoleEditing(data) {
 export function approveRoleUpgradeByFinance(data) {
   return request({
     url: `/application/approveroleupgradebyfinance`,
-    method: 'post',
-    data
-  });
-}
-
-// approveRoleUpgradeByManager
-export function approveRoleUpgradeByManager(data) {
-  return request({
-    url: `/application/approveroleupgradebymanager`,
-    method: 'post',
-    data
-  });
-}
-
-// addRole
-export function addRole(data) {
-  return request({
-    url: `/application/updaterolehistory`,
-    method: 'post',
-    data
-  });
-}
-
-// approveAddRole
-export function approveAddRole(data) {
-  return request({
-    url: `/application/approverolehistory`,
     method: 'post',
     data
   });

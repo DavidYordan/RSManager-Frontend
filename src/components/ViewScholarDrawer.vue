@@ -17,7 +17,7 @@
             <template #default="scope">
               <div class="value-with-button">
                 <template v-if="scope.row.isLink">
-                  <el-link type="primary" @click="openProfitsDialog('profits1')">
+                  <el-link type="primary" @click="openDialog(scope.row.key)">
                     <span v-html="scope.row.value"></span>
                   </el-link>
                   <el-button 
@@ -51,7 +51,7 @@
               <div class="value-with-button">
                 <!-- 判断是否为链接 -->
                 <template v-if="scope.row.isLink">
-                  <el-link type="primary" @click="openProfitsDialog('profits2')">
+                  <el-link type="primary" @click="openDialog(scope.row.key)">
                     <span v-html="scope.row.value"></span>
                   </el-link>
                   <el-button 
@@ -151,6 +151,14 @@
       maxWidth="90%"
       maxHeight="70vh"
     />
+
+    <ShowTotalRevenues
+      v-if="totalRevenuesData"
+      :data="totalRevenuesData"
+      ref="ShowTotalRevenuesRef"
+      maxWidth="90%"
+      maxHeight="70vh"
+    />
   </el-drawer>
 </template>
 
@@ -162,12 +170,14 @@ import { updateUser, searchusers } from '@/api/user';
 import { ElMessage } from 'element-plus';
 import FindUser from '@/components/FindUser.vue';
 import ShowProfits from '@/components/ShowProfits.vue';
+import ShowTotalRevenues from '@/components/ShowTotalRevenues.vue';
 
 export default {
   name: 'ViewScholarDrawer',
   components: {
     FindUser,
     ShowProfits,
+    ShowTotalRevenues,
   },
   setup(_, { expose }) {
     const { t } = useI18n();
@@ -274,10 +284,19 @@ export default {
         { key: 'inviterFullname', label: "邀请人姓名", value: userData.value.inviterFullname || '-' },
         { key: 'managerFullname', label: "管理人姓名", value: userData.value.managerFullname || '-' },
         { key: 'teacherFullname', label: "导师姓名", value: userData.value.teacherFullname || '-' },
-        { key: 'projectAmountSum', label: "项目金额", value: formatCurrency(userData.value.projectAmount, userData.value.projectCurrencyName) },
+        {
+          key: 'projectAmountSum',
+          label: "项目金额",
+          value: formatCurrency(userData.value.projectAmount, userData.value.projectCurrencyName)
+        },
         { key: 'inviteCount', label: "邀请人数", value: userData.value.inviteCount || '-' },
         { key: 'profits1', label: "一级分佣", value: formatGroupedProfits(profits1), isLink: userData.value?.profits1.length > 0 },
-        { key: 'platformTotalRevenue', label: "平台总收入", value: formatCurrency(userData.value.moneySum) },
+        {
+          key: 'platformTotalRevenue',
+          label: "平台总收入",
+          value: formatCurrency(userData.value.moneySum),
+          isLink: userData.value.inviteDailyMoneySum0DTOs.length > 0 || userData.value.inviteDailyMoneySum1DTOs.length > 0
+        },
         { key: 'platformTotalWithdrawal', label: "平台总提现", value: formatCurrency(userData.value.cashOut) },
         { key: 'createdAt', label: "创建时间", value: formatDate(userData.value.createdAt) },
       ];
@@ -287,7 +306,7 @@ export default {
       const profits2 = groupProfitsByCurrency(userData.value?.profits2);
       return [
         { key: 'username', label: "用户名", value: userData.value?.username || '-' },
-        { key: 'roleId', label: "角色", value: userData.value.roleId },
+        { key: 'roleId', label: "角色", value: userData.value.roleName },
         { key: 'currencyName', label: "币种", value: userData.value.currencyName || '-' },
         { key: 'invitationCode', label: "平台邀请码", value: userData.value.invitationCode || '-' },
         { key: 'inviterName', label: "邀请人账号", value: userData.value.inviterName || '-' },
@@ -449,6 +468,36 @@ export default {
     const showProfitsRef = ref(null);
     const profitsDialogTitle = ref('');
     const profitsDialogData = ref([]);
+    const ShowTotalRevenuesRef = ref(null);
+    const totalRevenuesData = ref([]);
+
+    const openDialog = (type) => {
+      if (type === 'profits1') {
+        openProfitsDialog('profits1');
+      } else if (type === 'profits2') {
+        openProfitsDialog('profits2');
+      } else if (type === 'platformTotalRevenue') {
+        openTotalRevenueDialog('平台收入明细');
+      } else {
+        return;
+      }
+    };
+
+    const openTotalRevenueDialog = () => {
+      if (userData.value.inviteDailyMoneySum0DTOs.length === 0 && userData.value.inviteDailyMoneySum1DTOs.length === 0) {
+        ElMessage.warning('无相关数据');
+        return;
+      }
+
+      totalRevenuesData.value = [
+        ...userData.value.inviteDailyMoneySum0DTOs,
+        ...userData.value.inviteDailyMoneySum1DTOs,
+      ];
+
+      if (ShowTotalRevenuesRef.value) {
+        ShowTotalRevenuesRef.value.openDialog();
+      }
+    };
 
     const openProfitsDialog = (profitType) => {
       let data = [];
@@ -497,7 +546,11 @@ export default {
       showProfitsRef,
       profitsDialogTitle,
       profitsDialogData,
+      ShowTotalRevenuesRef,
+      totalRevenuesData,
+      openDialog,
       openProfitsDialog,
+      openTotalRevenueDialog,
       submitChange,
       getChangeComponent,
       resetChangeDialog,

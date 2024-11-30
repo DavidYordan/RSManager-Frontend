@@ -84,36 +84,33 @@
           </el-form-item>
         </el-col>
 
-        <!-- 权益创建时间 -->
-        <el-col :span="12">
-          <el-form-item label="生效日期">
-            <el-date-picker
-              v-model="form.effectiveAfter"
-              type="date"
-              placeholder="开始日期"
-              style="margin-right: 10px;"
-            ></el-date-picker>
-            <el-date-picker
-              v-model="form.effectiveBefore"
-              type="date"
-              placeholder="结束日期"
-            ></el-date-picker>
+        <!-- 地区 -->
+        <el-col :span="6">
+          <el-form-item label="地区">
+            <el-select v-model="form.regionName" placeholder="选择地区" clearable>
+              <el-option
+                v-for="(label, key) in regionOptions"
+                :key="key"
+                :label="label"
+                :value="label"
+              ></el-option>
+            </el-select>
           </el-form-item>
         </el-col>
 
-        <!-- 地区 -->
-        <!-- <el-col :span="6">
-          <el-form-item :label="$t('ViewApplications.regionName')">
-            <el-input v-model="form.regionName" :placeholder="$t('ViewApplications.placeholders.enterRegionName')"></el-input>
-          </el-form-item>
-        </el-col> -->
-
         <!-- 币种 -->
-        <!-- <el-col :span="6">
-          <el-form-item :label="$t('ViewApplications.currency')">
-            <el-input v-model="form.currency" :placeholder="$t('ViewApplications.placeholders.enterCurrency')"></el-input>
+        <el-col :span="6">
+          <el-form-item label="币种">
+            <el-select v-model="form.currencyName" placeholder="选择币种" clearable>
+              <el-option
+                v-for="(label, key) in currencyOptions"
+                :key="key"
+                :label="label"
+                :value="label"
+              ></el-option>
+            </el-select>
           </el-form-item>
-        </el-col> -->
+        </el-col>
       </el-row>
 
       <el-row :gutter="20">
@@ -142,6 +139,23 @@
                 :value="label"
               ></el-option>
             </el-select>
+          </el-form-item>
+        </el-col>
+
+        <!-- 权益创建时间 -->
+        <el-col :span="12">
+          <el-form-item label="生效日期">
+            <el-date-picker
+              v-model="form.startAfter"
+              type="date"
+              placeholder="开始日期"
+              style="margin-right: 10px;"
+            ></el-date-picker>
+            <el-date-picker
+              v-model="form.startBefore"
+              type="date"
+              placeholder="结束日期"
+            ></el-date-picker>
           </el-form-item>
         </el-col>
 
@@ -207,18 +221,18 @@
             {{ scope.row.inviterFullname || scope.row.inviterName }}
           </template>
         </el-table-column>
-        <el-table-column prop="regionName" :label="$t('ViewApplications.table.regionName')"></el-table-column>
-        <el-table-column prop="currency" :label="$t('ViewApplications.table.currency')"></el-table-column>
-        <el-table-column prop="projectName" :label="$t('ViewApplications.table.projectName')"></el-table-column>
-        <el-table-column prop="projectAmount" :label="$t('ViewApplications.table.projectAmount')">
+        <el-table-column prop="regionName" label="地区"></el-table-column>
+        <el-table-column prop="currencyName" label="币种"></el-table-column>
+        <el-table-column prop="projectName" label="项目名称"></el-table-column>
+        <el-table-column prop="projectAmount" label="项目金额">
           <template #default="scope">
-            {{ formatCurrency(scope.row.projectAmount, scope.row.currency) }}
+            {{ formatCurrency(scope.row.projectAmount, scope.row.currencyName) }}
           </template>
         </el-table-column>
         <el-table-column prop="paymentMethod" :label="$t('ViewApplications.table.paymentMethod')"></el-table-column>
-        <el-table-column prop="paidStr" :label="$t('ViewApplications.table.paidStr')">
+        <el-table-column prop="paidStr" label="已缴纳学费">
           <template #default="scope">
-            <span v-html = "scope.row.paidStr"></span>
+            <span v-html="getPaidStr(scope.row.applicationPaymentRecordDTOs)"></span>
           </template>
         </el-table-column>
         <el-table-column prop="rateA" :label="$t('ViewApplications.table.rateA')"></el-table-column>
@@ -269,12 +283,17 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import ViewApplicationDrawer from '@/components/ViewApplicationDrawer.vue';
 import { searchTodoApplications } from '@/api/application';
+import { fetchAllRegions as apifetchAllRegions } from '@/api/utils'
 
 export default {
   name: 'ViewApplications',
   components: { ViewApplicationDrawer },
   setup() {
     const { t } = useI18n();
+
+    // 地区选项
+    const regionOptions = ref([]);
+    const currencyOptions = ref([]);
 
     // Form data
     const form = reactive({
@@ -285,11 +304,13 @@ export default {
       inviterFullname: '',
       inviterName: '',
       inviterCode: '',
+      regionName: '',
+      currencyName: '',
       processStatuses: [],
       managerFullname: '',
       managerName: '',
-      effectiveAfter: null,
-      effectiveBefore: null,
+      startAfter: null,
+      startBefore: null,
       roleId: null,
       paymentMethod: '',
       createdAfter: null,
@@ -298,15 +319,18 @@ export default {
 
     // Process Status options
     const processStatusOptions = {
-      '5': t('ViewApplications.status.5'),
-      '1': t('ViewApplications.status.1'),
-      '2': t('ViewApplications.status.2'),
-      '3': t('ViewApplications.status.3'),
-      '4': t('ViewApplications.status.4'),
-      '99': t('ViewApplications.status.99'),
-      '6': t('ViewApplications.status.6'),
-      '7': t('ViewApplications.status.7'),
-      '0': t('ViewApplications.status.0')
+      '5': "支付中",
+      '1': "编辑中",
+      '2': "财务审核中",
+      '3': "链接申请中",
+      '4': "链接审核中",
+      '6': "结束",
+      '7': "归档",
+      '0': "取消",
+      '87': "补充角色编辑中",
+      '88': "补充角色财务审核中",
+      '97': "升级角色编辑中",
+      '98': "升级角色财务审核中"
     };
 
     // Role options
@@ -356,6 +380,40 @@ export default {
       }
     };
 
+    const loadAllTypes = async () => {
+      try {
+        const response = await apifetchAllRegions()
+        if (response.data.success) {
+          const data = response.data.data
+
+          regionOptions.value = data.map(region => region.regionName);
+          currencyOptions.value = [...new Set(data.map(region => region.currencyName))];
+
+        } else {
+          ElMessage.error(t('enrollScholar.FetchTypesFailed'))
+        }
+      } catch (error) {
+        ElMessage.error(t('enrollScholar.FetchTypesFailed'))
+      }
+    }
+
+    const getPaidStr = (payments) => {
+      if (!payments || !payments.length) {
+        return "0";
+      }
+      // 使用 Map 分组并计算总额
+      const grouped = payments.reduce((acc, payment) => {
+        const currencyName = payment.currencyName;
+        acc[currencyName] = (acc[currencyName] || 0) + payment.paymentAmount;
+        return acc;
+      }, {});
+
+      // 构造字符串，每个货币一行
+      return Object.entries(grouped)
+        .map(([currencyName, total]) => `${total} ${currencyName}`)
+        .join("<br>");
+    }
+
     // Search applications
     const searchTodoApplicationsHandler = () => {
       currentPage.value = 1;
@@ -370,12 +428,14 @@ export default {
         processStatuses: form.processStatuses,
         managerFullname: form.managerFullname || null,
         managerName: form.managerName || null,
-        effectiveAfter: form.effectiveAfter,
-        effectiveBefore: form.effectiveBefore,
+        startAfter: form.startAfter,
+        startBefore: form.startBefore,
         roleId: form.roleId,
         paymentMethod: form.paymentMethod || null,
         createdAfter: form.createdAfter,
         createdBefore: form.createdBefore,
+        regionName: form.regionName || null,
+        currencyName: form.currencyName || null,
         page: currentPage.value - 1,
         size: pageSize.value
       };
@@ -391,11 +451,13 @@ export default {
       form.inviterFullname = '';
       form.inviterName = '';
       form.inviterCode = '';
+      form.regionName = '';
+      form.currencyName = '';
       form.processStatuses = [];
       form.managerFullname = '';
       form.managerName = '';
-      form.effectiveAfter = null;
-      form.effectiveBefore = null;
+      form.startAfter = null;
+      form.startBefore = null;
       form.roleId = null;
       form.paymentMethod = '';
       form.createdAfter = null;
@@ -424,12 +486,12 @@ export default {
       }
     };
 
-    // Format currency based on currency type
-    const formatCurrency = (value, currency) => {
+    // Format currencyName based on currencyName type
+    const formatCurrency = (value, currencyName) => {
       if (value === null || value === undefined) {
         return '-';
       }
-      return `${parseFloat(value.toFixed(2))} ${currency}`;
+      return `${parseFloat(value.toFixed(2))} ${currencyName}`;
     };
 
     const tableRowClassName = ({ row, rowIndex }) => {
@@ -469,8 +531,8 @@ export default {
         processStatuses: form.processStatuses,
         managerFullname: form.managerFullname || null,
         managerName: form.managerName || null,
-        effectiveAfter: form.effectiveAfter,
-        effectiveBefore: form.effectiveBefore,
+        startAfter: form.startAfter,
+        startBefore: form.startBefore,
         roleId: form.roleId,
         paymentMethod: form.paymentMethod || null,
         createdAfter: form.createdAfter,
@@ -497,6 +559,7 @@ export default {
 
     onMounted(() => {
       initialize();
+      loadAllTypes();
     });
 
     return {
@@ -519,7 +582,11 @@ export default {
       totalPages,
       handlePageChange,
       handleSizeChange,
-      drawerRef
+      drawerRef,
+      regionOptions,
+      currencyOptions,
+      loadAllTypes,
+      getPaidStr
     };
   }
 };

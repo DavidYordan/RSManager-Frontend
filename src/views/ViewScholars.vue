@@ -181,9 +181,6 @@
         >
           <template #default="scope">
             <span @click="toggleRow(scope.row)" style="cursor: pointer; display: inline-flex; align-items: center;">
-              <component
-                style="margin-right: 4px;"
-              />
               <span>{{ scope.row.userId }}</span>
               <span v-if="scope.row.hasChildren" class="child-count" style="margin-left: 4px;">({{ scope.row.inviteCount }})</span>
             </span>
