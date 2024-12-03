@@ -4,7 +4,7 @@
     <div class="background-overlay"></div>
 
     <!-- 鼠标拖尾效果的容器 -->
-    <div id="mouse-trail"></div>
+    <canvas id="mouse-trail-canvas"></canvas>
 
     <!-- 华丽的主页内容 -->
     <div class="content-container">
@@ -48,13 +48,16 @@
               <p>暂无数据</p>
             </template>
             <div
-              v-for="(amount, currency) in summaryCard1"
-              :key="currency"
-              class="currency-row"
+              v-for="(amount, currencyName) in summaryCard1"
+              :key="currencyName"
+              class="currencyName-row"
             >
-              <el-link @click="openDetails(currency)" type="primary"
-                >{{ formatNumber(amount) }} {{ currency }}</el-link
+              <el-link @click="openProfitsDialog()" type="primary"
+                >{{ formatNumber(amount) }} {{ currencyName }}</el-link
               >
+            </div>
+            <div class="card-content">
+                总邀请人数：{{ formatNumber(inviteCount) }}
             </div>
           </div>
         </el-card>
@@ -63,34 +66,43 @@
         <el-card class="summary-card">
           <h3>短剧平台汇总</h3>
           <div class="card-content">
-            <div class="platform-row">
-              总收益：{{ formatNumber(platformTotalRevenue) }}
+            <div class="currencyName-row">
+              <el-link @click="openTotalRevenueDialog()" type="primary">
+                总收益：{{ formatNumber(platformTotalRevenue) }} 美元
+              </el-link>
             </div>
             <div class="platform-row">
-              已提现：{{ formatNumber(platformTotalWithdrawal) }}
+              已提现：{{ formatNumber(platformTotalWithdrawal) }} 美元
             </div>
             <div class="platform-row">
-              可提现：{{ formatNumber(platformRevenueBalance) }}
+              可提现：{{ formatNumber(platformRevenueBalance) }} 美元
+            </div>
+            <div class="platform-row">
+              总邀请人数：{{ formatNumber(platformInviteCount) }}
             </div>
           </div>
         </el-card>
 
         <!-- 在数据卡片右侧增加纵向布局的两个按钮 -->
-        <div class="month-navigation">
-          <el-button
-            @click="changeMonth(-1)"
-            :disabled="isPrevMonthDisabled"
-            size="small"
-          >
-            上一月
-          </el-button>
-          <el-button
-            @click="changeMonth(1)"
-            :disabled="isNextMonthDisabled"
-            size="small"
-          >
-            下一月
-          </el-button>
+        <div class="month-container">
+          <div class="month-navigation">
+            <el-button
+              @click="changeMonth(-1)"
+              :disabled="isPrevMonthDisabled"
+              size="small"
+            >
+              上一月
+            </el-button>
+          </div>
+          <div class="month-navigation">
+            <el-button
+              @click="changeMonth(1)"
+              :disabled="isNextMonthDisabled"
+              size="small"
+            >
+              下一月
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -100,24 +112,27 @@
           <canvas ref="growthChartRef"></canvas>
         </template>
         <template v-else>
-          <el-empty description="暂无增长数据"></el-empty>
+          <el-empty description="暂无数据"></el-empty>
         </template>
       </div>
 
       <!-- 明细弹窗 -->
       <el-dialog
         v-model="detailDialogVisible"
-        :title="selectedCurrency + ' 详情'"
+        :title="selectedCurrencyName + ' 详情'"
         width="60%"
       >
-        <el-table :data="currencyDetails" style="width: 100%">
+        <el-table :data="currencyNameDetails" style="width: 100%">
+          <el-table-column prop="regionName" label="区域"></el-table-column>
           <el-table-column prop="fullname" label="姓名"></el-table-column>
-          <el-table-column prop="regionName" label="地区"></el-table-column>
-          <el-table-column prop="currency" label="币种"></el-table-column>
-          <el-table-column prop="paymentAmount" label="支付金额"></el-table-column>
-          <el-table-column prop="profit" label="佣金"></el-table-column>
-          <el-table-column prop="paymentDate" label="支付日期"></el-table-column>
-          <el-table-column prop="inviterFullname" label="邀请人"></el-table-column>
+          <el-table-column prop="currencyName" label="币种"></el-table-column>
+          <el-table-column prop="paymentDate" label="付款日期"></el-table-column>
+          <el-table-column prop="projectName" label="项目名称"></el-table-column>
+          <el-table-column prop="projectAmount" label="项目金额"></el-table-column>
+          <el-table-column prop="actual" label="支付金额"></el-table-column>
+          <el-table-column prop="profit" label="分佣"></el-table-column>
+          <el-table-column prop="rate" label="分佣比例"></el-table-column>
+          <el-table-column prop="inviterFullname" label="邀请人姓名"></el-table-column>
         </el-table>
         <template #footer>
           <el-button @click="detailDialogVisible = false">关闭</el-button>
@@ -125,6 +140,23 @@
       </el-dialog>
 
       <ResetPasswordModal v-model="resetPasswordModalVisible" />
+
+      <ShowProfits
+        v-if="profitsDialogData"
+        :title="profitsDialogTitle"
+        :data="profitsDialogData"
+        ref="showProfitsRef"
+        maxWidth="90%"
+        maxHeight="70vh"
+      />
+
+      <ShowTotalRevenues
+        v-if="totalRevenuesData"
+        :data="totalRevenuesData"
+        ref="ShowTotalRevenuesRef"
+        maxWidth="90%"
+        maxHeight="70vh"
+      />
     </div>
   </div>
 </template>
@@ -132,11 +164,13 @@
 <script>
 import { useStore } from '../store';
 import { useRouter } from 'vue-router';
-import { ref, onMounted, watch, computed, nextTick, onBeforeUnmount } from 'vue';
+import { ref, onMounted, computed, nextTick, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getCurrentUserSummary } from '@/api/user';
 import { ElMessage } from 'element-plus';
 import ResetPasswordModal from '@/components/ResetPasswordModal.vue';
+import ShowProfits from '@/components/ShowProfits.vue';
+import ShowTotalRevenues from '@/components/ShowTotalRevenues.vue';
 import Chart from 'chart.js/auto';
 import dayjs from 'dayjs';
 import { gsap } from 'gsap';
@@ -145,6 +179,8 @@ export default {
   name: 'Home',
   components: {
     ResetPasswordModal,
+    ShowProfits,
+    ShowTotalRevenues,
   },
   setup() {
     const store = useStore();
@@ -153,6 +189,13 @@ export default {
 
     const roleId = store.roleId;
     const resetPasswordModalVisible = ref(false);
+
+    // Generic Dialog
+    const showProfitsRef = ref(null);
+    const profitsDialogTitle = ref('');
+    const profitsDialogData = ref([]);
+    const ShowTotalRevenuesRef = ref(null);
+    const totalRevenuesData = ref([]);
 
     const openResetPasswordModal = () => {
       resetPasswordModalVisible.value = true;
@@ -183,11 +226,13 @@ export default {
 
     // 汇总收益（按货币）
     const summaryCard1 = ref({ '美元': 0 });
+    const inviteCount = ref(0);
 
     // 短剧平台汇总数据
     const platformTotalRevenue = ref(0);
     const platformTotalWithdrawal = ref(0);
     const platformRevenueBalance = ref(0);
+    const platformInviteCount = ref(0);
 
     const currencyProfits = ref([]);
     const profitsData = ref([]);
@@ -198,8 +243,8 @@ export default {
 
     // 明细弹窗
     const detailDialogVisible = ref(false);
-    const selectedCurrency = ref('');
-    const currencyDetails = ref([]);
+    const selectedCurrencyName = ref('');
+    const currencyNameDetails = ref([]);
 
     // 增长数据
     const growthData = ref([]);
@@ -220,7 +265,7 @@ export default {
 
           // 设置数据
           summaryCard1.value = data.currencyProfits?.reduce((acc, curr) => {
-            acc[curr.currency] = curr.profits.reduce(
+            acc[curr.currencyName] = curr.profits.reduce(
               (sum, profit) => sum + (profit.profit || 0),
               0
             );
@@ -241,18 +286,21 @@ export default {
               (sum, profit) => sum + (profit.profit || 0),
               0
             );
-            acc[curr.currency] = totalProfit;
+            acc[curr.currencyName] = totalProfit;
             return acc;
           }, {});
 
-          growthData.value = currencyProfits.value.map((currencyProfit) => ({
-            currency: currencyProfit.currency,
-            growthDatas: currencyProfit.growthDatas,
+          growthData.value = currencyProfits.value.map((currencyNameProfit) => ({
+            currencyName: currencyNameProfit.currencyName,
+            growthDatas: currencyNameProfit.growthDatas,
           }));
 
-          platformTotalRevenue.value = data.platformTotalRevenue || 0;
-          platformTotalWithdrawal.value = data.platformTotalWithdrawal || 0;
-          platformRevenueBalance.value = data.platformRevenueBalance || 0;
+          platformTotalRevenue.value = data.moneySum || 0;
+          platformTotalWithdrawal.value = data.cashOut || 0;
+          platformRevenueBalance.value = data.money || 0;
+          inviteCount.value = data.inviteCount || 0;
+          platformInviteCount.value = data.platformInviteCount || 0;
+          totalRevenuesData.value = data.inviteDailyMoneySumDTOs || [];
 
           if (growthData.value && growthData.value.length > 0) {
             updateChartData(growthData.value);
@@ -281,13 +329,13 @@ export default {
       const datasets = [];
       const yAxes = {};
 
-      growthDataArray.forEach((currencyData, index) => {
+      growthDataArray.forEach((currencyNameData, index) => {
         const yAxisID = `y${index}`;
 
         datasets.push({
-          label: currencyData.currency,
-          data: currencyData.growthDatas.map((item) => item.profit),
-          borderColor: getColorForCurrency(index),
+          label: currencyNameData.currencyName,
+          data: currencyNameData.growthDatas.map((item) => item.profit),
+          borderColor: getColorForCurrencyName(index),
           backgroundColor: 'rgba(0, 0, 0, 0)',
           fill: false,
           tension: 0.4,
@@ -300,7 +348,7 @@ export default {
           position: index % 2 === 0 ? 'left' : 'right',
           title: {
             display: true,
-            text: currencyData.currency,
+            text: currencyNameData.currencyName,
           },
           grid: {
             drawOnChartArea: false,
@@ -354,7 +402,7 @@ export default {
       }
     };
 
-    const getColorForCurrency = (index) => {
+    const getColorForCurrencyName = (index) => {
       const colors = [
         'rgba(75, 192, 192, 1)', // 绿色
         'rgba(255, 99, 132, 1)', // 红色
@@ -385,53 +433,153 @@ export default {
       platformTotalRevenue.value = 0;
       platformTotalWithdrawal.value = 0;
       platformRevenueBalance.value = 0;
+      inviteCount.value = 0;
+      platformInviteCount.value = 0;
       fetchUserSummary();
     };
 
-    const openDetails = (currency) => {
-      selectedCurrency.value = currency;
-      currencyDetails.value = getCurrencyDetails(currency);
+    const openDetails = (currencyName) => {
+      selectedCurrencyName.value = currencyName;
+      currencyNameDetails.value = getCurrencyNameDetails(currencyName);
       detailDialogVisible.value = true;
     };
 
-    const getCurrencyDetails = (currency) => {
+    const getCurrencyNameDetails = (currencyName) => {
       if (!profitsData.value || profitsData.value.length === 0) return [];
 
       return profitsData.value
-        .filter((entry) => entry.currency === currency)
+        .filter((entry) => entry.currencyName === currencyName)
         .map((entry) => ({
-          fullname: entry.fullname || '****',
           regionName: entry.regionName,
-          currency: entry.currency,
-          paymentAmount: Number(entry.paymentAmount).toFixed(2),
+          fullname: entry.userFullname,
+          currencyName: entry.currencyName,
+          projectName: entry.projectName,
+          projectAmount: Number(entry.projectAmount).toFixed(2),
+          actual: Number(entry.actual).toFixed(2),
           profit: Number(entry.profit).toFixed(2),
+          rate: entry.rate,
           paymentDate: dayjs(entry.paymentDate).format('YYYY-MM-DD'),
-          inviterFullname: entry.inviterFullname || '/',
+          inviterFullname: entry.inviterFullname,
+          inviterRoleId: entry.inviterRoleId,
         }));
     };
+
+    const openTotalRevenueDialog = () => {
+      if (totalRevenuesData.value.length === 0) {
+        ElMessage.warning('无相关数据');
+        return;
+      }
+
+      if (ShowTotalRevenuesRef.value) {
+        ShowTotalRevenuesRef.value.openDialog();
+      }
+    };
+
+    const openProfitsDialog = () => {
+      console.log('profitsData.value:', profitsData.value);
+      if (profitsData.value.length === 0) {
+        ElMessage.warning('无相关数据');
+        return;
+      }
+
+      profitsDialogTitle.value = '分佣明细';
+      profitsDialogData.value = profitsData.value;
+      if (showProfitsRef.value) {
+        showProfitsRef.value.openDialog();
+      }
+    };
+
+    function initMouseTrail() {
+      const canvas = document.getElementById('mouse-trail-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      let particlesArray = [];
+
+      const mouse = {
+        x: null,
+        y: null,
+      };
+
+      window.addEventListener('mousemove', function (event) {
+        mouse.x = event.x;
+        mouse.y = event.y;
+        for (let i = 0; i < 2; i++) {
+          particlesArray.push(new Particle());
+        }
+      });
+
+      class Particle {
+        constructor() {
+          this.x = mouse.x;
+          this.y = mouse.y;
+          this.size = Math.random() * 5 + 1;
+          this.speedX = Math.random() * 3 - 1.5;
+          this.speedY = Math.random() * 3 - 1.5;
+          this.color = 'rgba(212,230,241,0.8)';
+        }
+        update() {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          if (this.size > 0.2) this.size -= 0.1;
+        }
+        draw() {
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function handleParticles() {
+        for (let i = 0; i < particlesArray.length; i++) {
+          particlesArray[i].update();
+          particlesArray[i].draw();
+          if (particlesArray[i].size <= 0.3) {
+            particlesArray.splice(i, 1);
+            i--;
+          }
+        }
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        handleParticles();
+        requestAnimationFrame(animate);
+      }
+      animate();
+
+      window.addEventListener('resize', function () {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      });
+    }
 
     onMounted(() => {
       fetchUserSummary();
 
       // 使用 GSAP 为元素添加动画
-      gsap.from('.summary-card', {
-        opacity: 0,
-        y: 50,
-        duration: 1,
-        stagger: 0.2,
-      });
-      gsap.from('.month-navigation .el-button', {
-        opacity: 0,
-        x: -50,
-        duration: 1,
-        delay: 0.5,
-      });
+      // gsap.from('.summary-card', {
+      //   opacity: 0,
+      //   y: 50,
+      //   duration: 1,
+      //   stagger: 0.2,
+      // });
+      // gsap.from('.month-navigation .el-button', {
+      //   opacity: 0,
+      //   x: -50,
+      //   duration: 1,
+      //   delay: 0.5,
+      // });
       gsap.from('.chart-container', {
         opacity: 0,
         scale: 0.9,
         duration: 1,
         delay: 1,
       });
+
+      initMouseTrail();
     });
 
     onBeforeUnmount(() => {
@@ -454,8 +602,8 @@ export default {
       summaryCard1,
       formatNumber,
       detailDialogVisible,
-      selectedCurrency,
-      currencyDetails,
+      selectedCurrencyName,
+      currencyNameDetails,
       openDetails,
       growthData,
       platformTotalRevenue,
@@ -464,6 +612,15 @@ export default {
       goToWorkspace,
       handleLogout,
       growthChartRef,
+      showProfitsRef,
+      profitsDialogTitle,
+      profitsDialogData,
+      ShowTotalRevenuesRef,
+      totalRevenuesData,
+      openTotalRevenueDialog,
+      openProfitsDialog,
+      inviteCount,
+      platformInviteCount,
     };
   },
 };
@@ -475,7 +632,7 @@ export default {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  color: #000;
+  /* color: #000; */
 }
 
 /* 背景图 */
@@ -485,20 +642,10 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('/src/assets/images/bg.jpg') no-repeat center center;
+  /* background: url('@/src/assets/images/bg1.jpg') no-repeat center center; */
   background-size: cover;
   filter: brightness(0.7);
-  z-index: -1;
-}
-
-/* 鼠标拖尾效果的容器 */
-#mouse-trail {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+  z-index: 0;
 }
 
 /* 华丽的主页内容容器 */
@@ -507,8 +654,9 @@ export default {
   z-index: 1;
   padding: 20px;
   box-sizing: border-box;
-  overflow-y: auto;
+  /* overflow-y: auto; */
   height: 100%;
+  /* background: transparent; */
 }
 
 /* 按钮容器样式 */
@@ -524,7 +672,7 @@ export default {
 .cards-container {
   display: flex;
   justify-content: center;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 20px;
   flex-wrap: wrap;
   margin-top: 60px;
@@ -541,6 +689,7 @@ export default {
   background: rgba(255, 255, 255, 0.8);
   display: flex;
   flex-direction: column;
+  /* flex: 1; */
   align-items: center;
 }
 
@@ -560,11 +709,11 @@ export default {
 }
 
 /* 货币行样式 */
-.currency-row {
+.currencyName-row {
   margin-bottom: 5px;
 }
 
-.currency-row .el-link {
+.currencyName-row .el-link {
   font-size: inherit;
 }
 
@@ -574,28 +723,21 @@ export default {
 }
 
 /* 月份导航按钮容器 */
-.month-navigation {
+.month-container {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 20px;
-  margin-left: 20px;
+  margin-top: 70px;
+}
+
+.month-navigation {
+  display: flex;
+  height: 50px;
 }
 
 .month-navigation .el-button {
   width: 100%;
-}
-
-/* 调整 cards-container 和 month-navigation 的布局 */
-.cards-container {
-  display: flex;
-  align-items: flex-start;
-}
-
-.month-navigation {
-  margin-left: 20px;
-  height: 150px;
 }
 
 /* 增长情况图表容器样式 */
@@ -626,5 +768,15 @@ export default {
 /* 鼠标指针隐藏 */
 body {
   cursor: none;
+}
+
+#mouse-trail-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
 </style>

@@ -112,8 +112,8 @@
         <!-- 表格列定义 -->
         <el-table-column prop="id" label="ID"></el-table-column>
         <el-table-column prop="fullname" label="姓名"></el-table-column>
-        <el-table-column prop="inviterFullame" label="邀请人"></el-table-column>
-        <el-table-column prop="managerFullame" label="管理人"></el-table-column>
+        <el-table-column prop="inviterFullname" label="邀请人"></el-table-column>
+        <el-table-column prop="managerFullname" label="管理人"></el-table-column>
         <el-table-column prop="platformId" label="平台ID"></el-table-column>
         <el-table-column prop="username" label="用户名"></el-table-column>
         <el-table-column prop="money" label="金额"></el-table-column>

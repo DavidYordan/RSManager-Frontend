@@ -145,16 +145,17 @@
               </template>
             </el-table-column>
             <el-table-column
-              prop="paymentTime"
+              prop="paymentDate"
               label="付款日期"
             >
               <template #default="scope">
-                {{ scope.row.paymentTime }}
+                {{ scope.row.paymentDate }}
               </template>
             </el-table-column>
             <el-table-column
               prop="paymentAccountStr"
               label="收款账户"
+              show-overflow-tooltip
             >
               <template #default="scope">
                 <span
@@ -170,7 +171,7 @@
             >
               <template #default="scope">
                 <span :class="paymentStatusClass(scope.row.status)">
-                  {{ scope.row.status ? "已审核" : "未审核" }}
+                  {{ paymentStatusOptions[scope.row.status] }}
                 </span>
               </template>
             </el-table-column>
@@ -356,6 +357,15 @@
       :currentPaymentMethod="actionData.paymentMethod || applicationData.paymentMethod"
     />
 
+    <!-- AddPaymentS Component -->
+    <AddPaymentS
+      v-if="applicationData"
+      ref="addPaymentSRef"
+      @paymentSAdded="handlePaymentSAdded"
+      :processId="processId"
+      :applicationData="applicationData"
+    />
+
     <!-- EditPayment Component -->
     <EditPayment
       v-if="currentPaymentRecord"
@@ -373,19 +383,19 @@
       :applicationData="applicationData"
     />
 
-    <!-- EditRole Dialog -->
-    <EditRole
+    <!-- EditAddRole Dialog -->
+    <AddRoleDialog
       v-if="applicationData"
-      ref="editRoleRef"
-      @roleEdited="handleRoleEdited"
+      ref="editAddRoleRef"
+      @roleEditAdded="handleEditAddRoled"
       :applicationData="applicationData"
     />
 
-    <!-- AddRole Dialog -->
-    <AddRole
+    <!-- EditUpgradeRole Dialog -->
+    <UpgradeRoleDialog
       v-if="applicationData"
-      ref="addRoleRef"
-      @roleEdited="handleAddRoled"
+      ref="editUpgradeRoleRef"
+      @roleEditUpgraded="handleEditUpgradeRoled"
       :applicationData="applicationData"
     />
 
@@ -405,7 +415,10 @@ import { ref, nextTick, computed, reactive } from 'vue';
 import { useStore } from '../store/index.js';
 import { useI18n } from 'vue-i18n';
 import {
+  submitPaymentRecord,
   approvePaymentRecord,
+  rejectPaymentRecord,
+  disApprovePaymentRecord,
   deletePaymentRecord,
   activateApplication,
   getApplicationInfo,
@@ -414,6 +427,7 @@ import {
   cancelApplication,
   finishedApplication,
   archiveApplication,
+  refundApplication,
   approveFinanceApplication,
   approveLinkApplication,
   getAllFilesSummary,
@@ -422,24 +436,23 @@ import {
   addRoleEditing as apiAddRoleEditing,
   upgradeRoleEditing as apiUpgradeRoleEditing,
   cancelRoleEditing as apiCancelRoleEditing,
-  saveAddRoleEditing as apiSaveAddRoleEditing,
-  saveUpgradeRoleEditing as apiSaveUpgradeRoleEditing,
-  submitAddRoleUpgrade as apiSubmitAddRoleUpgrade,
-  submitUpgradeRoleUpgrade as apiSubmitUpgradeRoleUpgrade,
+  submitAddRole as apiSubmitAddRole,
+  submitUpgradeRole as apiSubmitUpgradeRole,
   approveRoleAddByFinance as apiApproveRoleAddByFinance,
   approveRoleUpgradeByFinance as apiApproveRoleUpgradeByFinance
 } from '@/api/application';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AddPayment from '@/components/AddPayment.vue';
+import AddPaymentS from '@/components/AddPaymentS.vue';
 import EditPayment from '@/components/EditPayment.vue';
 import EnrollEdit from '@/components/EnrollEdit.vue';
-import EditRole from '@/components/EditRole.vue';
-import AddRole from '@/components/AddRole.vue';
+import UpgradeRoleDialog from '@/components/UpgradeRoleDialog.vue';
+import AddRoleDialog from '@/components/AddRoleDialog.vue';
 import RequestLink from '@/components/RequestLink.vue';
 
 export default {
   name: 'ViewApplicationDrawer',
-  components: { AddPayment, EditPayment, EnrollEdit, EditRole, AddRole, RequestLink },
+  components: { AddPayment, AddPaymentS, EditPayment, EnrollEdit, UpgradeRoleDialog, AddRoleDialog, RequestLink },
   setup(_, { emit, expose }) {
     const { t } = useI18n();
     const drawerVisible = ref(false);
@@ -465,10 +478,11 @@ export default {
     const isLoading = ref(false);
 
     const addPaymentRef = ref(null);
+    const addPaymentSRef = ref(null);
     const editPaymentRef = ref(null);
     const enrollEditRef = ref(null);
-    const editRoleRef = ref(null);
-    const addRoleRef = ref(null);
+    const editUpgradeRoleRef = ref(null);
+    const editAddRoleRef = ref(null);
     const requestLinkRef = ref(null);
 
     // 合同上传对话框的状态
@@ -552,51 +566,97 @@ export default {
       }
     };
 
-
     const paymentStatusAllTrue = computed(() => {
       if (!applicationData.value) return false;
       if (!applicationData.value.applicationPaymentRecordDTOs) return false;
       return applicationData.value.applicationPaymentRecordDTOs.every(payment => payment.status);
     });
 
+    const existPaymentRecords = computed(() => {
+      // 检查是否存在和actionData.value.paymentDae=paymentRecords.paymentDate相同的支付记录，存在则返回true
+      if (!applicationData.value) return false;
+      if (!applicationData.value.applicationPaymentRecordDTOs) return false;
+      if (!actionData.value) return false;
+      return applicationData.value.applicationPaymentRecordDTOs.some(payment => payment.paymentDate === actionData.value.startDate);
+    });
+
     const paymentActions = (payment) => {
-      if (payment.status) {
+      if (payment.status === -1) {
         return [];
       }
 
-      if (applicationData.value.processStatus === 1 || applicationData.value.processStatus === 97) {
+      if ([1, 87, 97].includes(applicationData.value.processStatus)) {
         if ([1, 2, 3].includes(store.roleId)) {
-          return [
-            { name: 'editPayment', label: "编辑", type: 'primary' },
-            { name: 'deletePayment', label: t('ViewApplicationDrawer.actions.deletePayment'), type: 'danger' },
-          ];
+          if (payment.status === 1) {
+            return []
+          } else {
+            return [
+              { name: 'editPayment', label: "编辑", type: 'primary' },
+              { name: 'deletePayment', label: "删除", type: 'danger' },
+            ];
+          }
         } else {
           return [];
         }
-      } else if (applicationData.value.processStatus === 2 || applicationData.value.processStatus === 98) {
+      } else if ([2, 88, 98].includes(applicationData.value.processStatus)) {
         if ([1, 8].includes(store.roleId)) {
-          return [
-            { name: 'approvePayment', label: t('ViewApplicationDrawer.actions.approvePayment'), type: 'success' },
-          ];
+          if (payment.status === 1) {
+            return [
+              { name: 'disApprovePayment', label: "撤回审核", type: 'danger' }
+            ]
+          } else if (payment.status === 2) {
+            return [
+              { name: 'approvePayment', label: "批准", type: 'success' }
+            ];
+          } else {
+            return [];
+          }
         } else {
           return [];
         }
       } else if (applicationData.value.processStatus === 5) {
         if ([1].includes(store.roleId)) {
-          return [
-            { name: 'editPayment', label: "编辑", type: 'primary' },
-            { name: 'approvePayment', label: t('ViewApplicationDrawer.actions.approvePayment'), type: 'success' },
-            { name: 'deletePayment', label: t('ViewApplicationDrawer.actions.deletePayment'), type: 'danger' },
-          ];
+          if (payment.status === 0 || payment.status === 3) {
+            return [
+              { name: 'editPayment', label: "编辑", type: 'primary' },
+              { name: 'submitPayment', label: "提交", type: 'success' },
+              { name: 'deletePayment', label: "删除", type: 'danger' }
+            ]
+          } else if (payment.status === 1) {
+            return [
+              { name: 'disApprovePayment', label: "撤回审核", type: 'danger' }
+            ]
+          } else if (payment.status === 2) {
+            return [
+              { name: 'approvePayment', label: "批准", type: 'success' },
+              { name: 'rejectPayment', label: "拒绝", type: 'warning' }
+            ]
+          } else {
+            return [];
+          }
         } else if ([2, 3].includes(store.roleId)) {
-          return [
-            { name: 'editPayment', label: "编辑", type: 'primary' },
-            { name: 'deletePayment', label: t('ViewApplicationDrawer.actions.deletePayment'), type: 'danger' },
-          ];
+          if (payment.status === 0 || payment.status === 3) {
+            return [
+              { name: 'editPayment', label: "编辑", type: 'primary' },
+              { name: 'submitPayment', label: "提交", type: 'success' },
+              { name: 'deletePayment', label: "删除", type: 'danger' }
+            ]
+          } else {
+            return [];
+          }
         } else if ([8].includes(store.roleId)) {
-          return [
-            { name: 'approvePayment', label: t('ViewApplicationDrawer.actions.approvePayment'), type: 'success' },
-          ];
+          if (payment.status === 1) {
+            return [
+              { name: 'disApprovePayment', label: "撤回审核", type: 'danger' }
+            ]
+          } else if (payment.status === 2) {
+            return [
+              { name: 'approvePayment', label: "批准", type: 'success' },
+              { name: 'rejectPayment', label: "拒绝", type: 'warning' }
+            ]
+          } else {
+            return [];
+          }
         } else {
           return [];
         }
@@ -612,7 +672,10 @@ export default {
         return;
       }
       const actionTexts = {
+        submitPayment: "提交支付记录",
         approvePayment: "审核支付记录",
+        rejectPayment: "拒绝支付记录",
+        disApprovePayment: "撤回审核",
         deletePayment: "删除支付记录"
       };
       ElMessageBox.prompt(
@@ -626,13 +689,30 @@ export default {
           inputValue: actionTexts[action]
         }
       )
-        .then(() => {
-          handlePaymentAction(action, payment, actionTexts[action]);
+        .then(({ value }) => {
+          // 取出inputValue的值
+          handlePaymentAction(action, payment, value);
         })
         .catch(() => {
           // User canceled
         });
     };
+
+    const canAddRole = computed(() => {
+      if (!applicationData.value) return false;
+      if (applicationData.value.roleId === 4) return true;
+      if (applicationData.value.roleId === 5) return true;
+      if (applicationData.value.roleId === 6) return false;
+      return false;
+    });
+
+    const canUpgradeRole = computed(() => {
+      if (!applicationData.value) return false;
+      if (applicationData.value.roleId === 4) return false;
+      if (applicationData.value.roleId === 5) return true;
+      if (applicationData.value.roleId === 6) return true;
+      return false;
+    });
 
     // Handle confirmed actions
     const handlePaymentAction = async (action, payment, comments) => {
@@ -640,8 +720,17 @@ export default {
         let response;
         const params = { processId: processId.value, paymentId: payment.paymentId, comments }; 
         switch (action) {
+          case 'submitPayment':
+            response = await submitPaymentRecord(params);
+            break;
           case 'approvePayment':
             response = await approvePaymentRecord(params);
+            break;
+          case 'rejectPayment':
+            response = await rejectPaymentRecord(params);
+            break;
+          case 'disApprovePayment':
+            response = await disApprovePaymentRecord(params);
             break;
           case 'deletePayment':
             response = await deletePaymentRecord(params);
@@ -650,11 +739,11 @@ export default {
             return;
         }
         if (response.data.success) {
-          ElMessage.success(t(`ViewApplicationDrawer.messages.${action}Success`));
+          ElMessage.success("操作成功");
           await showDrawer(processId.value, 'paymentRecords');
         } else {
           console.log(
-            response.data.message || t('ViewApplicationDrawer.errors.actionFailed')
+            response.data.message || "操作失败"
           );
         }
       } catch (error) {
@@ -726,51 +815,117 @@ export default {
               return [];
             }
           case 5: // paying
-            if ([1, 2].includes(store.roleId)) {
-                return [
-                  { name: 'finished', label: t('ViewApplicationDrawer.actions.finished'), type: 'info' },
-                  { name: 'updateRoleEditing', label: "升级角色", type: 'warning' },
-                  { name: 'addRole', label: "补充角色", type: 'info' }
-                ];
-            } else if ([3].includes(store.roleId)) {
+            if ([1, 2, 3].includes(store.roleId)) {
+              const returnList = [];
+              if (canAddRole.value) {
+                returnList.push({ name: 'addRoleEditing', label: "补充角色", type: 'info' });
+              }
+              if (canUpgradeRole.value) {
+                returnList.push({ name: 'upgradeRoleEditing', label: "升级角色", type: 'warning' });
+              }
+              if ([1, 2].includes(store.roleId)) {
+                returnList.push({ name: 'finished', label: "完成", type: 'success' });
+              }
+              if ([1].includes(store.roleId)) {
+                returnList.push({ name: 'refund', label: "退款", type: 'danger' });
+              }
+              return returnList;
+            } else if ([8].includes(store.roleId)) {
               return [
-                { name: 'updateRoleEditing', label: "升级角色", type: 'warning' },
-                { name: 'addRole', label: "补充角色", type: 'info' }
+                { name: 'refund', label: "退款", type: 'danger' }
               ];
             } else {
               return [];
             }
           case 6: // 已完成
-            if ([1, 2].includes(store.roleId)) {
+          if ([1, 2, 3].includes(store.roleId)) {
+              const returnList = [];
+              if (canAddRole.value) {
+                returnList.push({ name: 'addRoleEditing', label: "补充角色", type: 'info' });
+              }
+              if (canUpgradeRole.value) {
+                returnList.push({ name: 'upgradeRoleEditing', label: "升级角色", type: 'warning' });
+              }
+              if ([1, 2].includes(store.roleId)) {
+                returnList.push({ name: 'archive', label: "归档", type: 'success' });
+              }
+              if ([1].includes(store.roleId)) {
+                returnList.push({ name: 'refund', label: "退款", type: 'danger' });
+              }
+              return returnList;
+            } else if ([8].includes(store.roleId)) {
               return [
-                { name: 'archive', label: t('ViewApplicationDrawer.actions.archive'), type: 'info' },
-                { name: 'updateRoleEditing', label: "升级角色", type: 'warning' },
-                { name: 'addRole', label: "补充角色", type: 'info' }
-              ];
-            } else if ([3].includes(store.roleId)) {
-              return [
-                { name: 'updateRoleEditing', label: "升级角色", type: 'warning' },
-                { name: 'addRole', label: "补充角色", type: 'info' }
+                { name: 'refund', label: "退款", type: 'danger' }
               ];
             } else {
               return [];
             }
           case 7: // 已归档
             if ([1, 2, 3].includes(store.roleId)) {
+              const returnList = [];
+              if (canAddRole.value) {
+                returnList.push({ name: 'addRoleEditing', label: "补充角色", type: 'info' });
+              }
+              if (canUpgradeRole.value) {
+                returnList.push({ name: 'upgradeRoleEditing', label: "升级角色", type: 'warning' });
+              }
+              if ([1].includes(store.roleId)) {
+                returnList.push({ name: 'refund', label: "退款", type: 'danger' });
+              }
+              return returnList;
+            } else if ([8].includes(store.roleId)) {
               return [
-                { name: 'updateRoleEditing', label: "升级角色", type: 'warning' },
-                { name: 'addRole', label: "补充角色", type: 'info' }
+                { name: 'refund', label: "退款", type: 'danger' }
               ];
+            } else {
+              return [];
+            }
+          case 87: // 补充角色编辑中
+            if ([1, 2, 3].includes(store.roleId)) {
+              if (existPaymentRecords.value) {
+                return [
+                  { name: 'editAddRole', label: "编辑", type: 'primary' },
+                  { name: 'submitAddRole', label: "提交审核", type: 'success' },
+                  { name: 'cancelRoleEditing', label: "取消补充", type: 'warning' }
+                ];
+              } else {
+                return [
+                  { name: 'editAddRole', label: "编辑", type: 'primary' },
+                  { name: 'cancelRoleEditing', label: "取消补充", type: 'warning' }
+                ];
+              }
+            } else {
+              return [];
+            }
+          case 88: // 补充角色财务审核中
+            if ([1, 8].includes(store.roleId)) {
+              if (paymentStatusAllTrue.value) {
+                return [
+                  { name: 'approveRoleAddByFinance', label: "批准补充", type: 'success' },
+                  { name: 'withdraw', label: "撤回", type: 'warning' }
+                ];
+              } else {
+                return [
+                  { name: 'withdraw', label: "撤回", type: 'warning' }
+                ];
+              }
             } else {
               return [];
             }
           case 97: // 升级角色编辑中
             if ([1, 2, 3].includes(store.roleId)) {
-              return [
-                { name: 'editRole', label: "编辑", type: 'primary' },
-                { name: 'submitRoleUpgrade', label: "提交审核", type: 'success' },
-                { name: 'cancelUpdateRoleEditing', label: "取消升级", type: 'warning' }
-              ];
+              if (existPaymentRecords.value) {
+                return [
+                  { name: 'editUpgradeRole', label: "编辑", type: 'primary' },
+                  { name: 'submitUpgradeRole', label: "提交审核", type: 'success' },
+                  { name: 'cancelRoleEditing', label: "取消升级", type: 'warning' }
+                ];
+              } else {
+                return [
+                  { name: 'editUpgradeRole', label: "编辑", type: 'primary' },
+                  { name: 'cancelRoleEditing', label: "取消升级", type: 'warning' }
+                ];
+              }
             } else {
               return [];
             }
@@ -789,31 +944,17 @@ export default {
             } else {
               return [];
             }
-          case 99: // 升级角色审核中
-            if ([1, 2].includes(store.roleId)) {
-              return [
-                { name: 'approveRoleUpgradeByManager', label: "批准升级", type: 'success' },
-                { name: 'withdraw', label: "撤回", type: 'warning' }
-              ];
-            } else {
-              return [];
-            }
-          case 100: //补充角色审核中
-            if ([1, 2].includes(store.roleId)) {
-              return [
-                { name: 'approveAddRole', label: "批准补充", type: 'success' },
-                { name: 'cancelUpdateRoleEditing', label: "取消补充", type: 'warning' }
-              ];
-            } else {
-              return [];
-            }
           default:
             return [];
         }
       } else if (activeTab.value === 'paymentRecords') {
-        if ([1, 5, 97].includes(applicationData.value.processStatus) && [1, 2, 3].includes(store.roleId)) {
+        if ([1, 5].includes(applicationData.value.processStatus) && [1, 2, 3].includes(store.roleId)) {
           return [
-            { name: 'addPayment', label: t('ViewApplicationDrawer.actions.addPayment'), type: 'primary' }
+            { name: 'addPayment', label: "添加支付记录", type: 'primary' }
+          ];
+        } else if ([87, 97].includes(applicationData.value.processStatus) && [1, 2, 3].includes(store.roleId)) {
+          return [
+            { name: 'addPaymentS', label: "添加支付记录", type: 'primary' }
           ];
         } else {
           return [];
@@ -850,7 +991,7 @@ export default {
     };
 
     const handleProcessStatusAndActionStr = (data) => {
-      const validStatuses = [97, 98, 99, 100];
+      const validStatuses = [87, 88, 97, 98];
       if (validStatuses.includes(data.processStatus) && data.actionStr) {
         canViewAction.value = true;
         try {
@@ -998,6 +1139,12 @@ export default {
       }
     };
 
+    const openAddPaymentSDialog = () => {
+      if (addPaymentSRef.value) {
+        addPaymentSRef.value.openDialog();
+      }
+    };
+
     const openEditPaymentDialog = (payment) => {
       currentPaymentRecord.value = payment;
       if (editPaymentRef.value) {
@@ -1014,12 +1161,25 @@ export default {
     };
 
     const paymentStatusClass = (status) => {
-      return status ? 'status-paid' : 'status-unpaid';
+      // -1: 退款, 0: 编辑中, 1: 审核通过, 2: 审核中, 3: 拒绝
+      if (status === -1) {
+        return 'status-refunded';
+      } else if (status === 0) {
+        return 'status-editing';
+      } else if (status === 1) {
+        return 'status-approved';
+      } else if (status === 2) {
+        return 'status-pending';
+      } else if (status === 3) {
+        return 'status-rejected';
+      } else {
+        return '';
+      }
     };
 
     // Handle actions with confirmation
     const confirmAction = (action) => {
-      if (['addPayment', 'enrollEdit', 'editRole', 'addRole', 'requestLink', 'uploadContract'].includes(action)) {
+      if (['addPayment', 'addPaymentS', 'enrollEdit', 'editAddRole', 'editUpgradeRole', 'requestLink', 'uploadContract'].includes(action)) {
         handleAction(action);
         return;
       }
@@ -1028,17 +1188,18 @@ export default {
         withdraw: "退回申请",
         appCancel: "取消申请",
         archive: "归档",
+        refund: "退款",
         approveFinance: "财务审核通过",
         linkApprove: "链接审核通过",
         finished: "完成",
         activate: "激活",
-        updateRoleEditing: "切换为角色升级状态",
-        submitRoleUpgrade: "提交审核",
-        approveRoleUpgradeByFinance: "财务审核通过",
-        approveRoleUpgradeByManager: "管理审核通过",
-        addRole: "补充历史角色",
-        approveAddRole: "审核历史角色",
-        cancelUpdateRoleEditing: "取消升级"
+        addRoleEditing: "切换为角色补充状态",
+        upgradeRoleEditing: "切换为角色升级状态",
+        submitAddRole: "补充角色提交审核",
+        submitUpgradeRole: "升级角色提交审核",
+        approveRoleAddByFinance: "财务通过补充角色",
+        approveRoleUpgradeByFinance: "财务通过升级角色",
+        cancelRoleEditing: "取消角色补充/升级状态"
       };
       ElMessageBox.prompt(
         "请输入备注",
@@ -1051,8 +1212,8 @@ export default {
           inputValue: actionTexts[action]
         }
       )
-        .then(() => {
-          handleAction(action, actionTexts[action]);
+        .then(({ value }) => {
+          handleAction(action, value);
         })
         .catch(() => {
           // User canceled
@@ -1085,6 +1246,11 @@ export default {
               addPaymentRef.value.openDialog();
             }
             return;
+          case 'addPaymentS': 
+            if (addPaymentSRef.value) {
+              addPaymentSRef.value.openDialog();
+            }
+            return;
           case 'enrollEdit':
             if (enrollEditRef.value) {
               enrollEditRef.value.openDialog();
@@ -1107,34 +1273,40 @@ export default {
           case 'archive':
             response = await archiveApplication(params);
             break;
-          case 'updateRoleEditing':
-            response = await apiUpdateRoleEditing(params);
+          case 'refund':
+            response = await refundApplication(params);
             break;
-          case 'cancelUpdateRoleEditing':
-            response = await apiCancelUpdateRoleEditing(params);
+          case 'addRoleEditing':
+            response = await apiAddRoleEditing(params);
             break;
-          case 'submitRoleUpgrade':
-            response = await apiSubmitRoleUpgrade(params);
+          case 'upgradeRoleEditing':
+            response = await apiUpgradeRoleEditing(params);
+            break;
+          case 'cancelRoleEditing':
+            response = await apiCancelRoleEditing(params);
+            break;
+          case 'submitAddRole':
+            response = await apiSubmitAddRole(params);
+            break;
+          case 'submitUpgradeRole':
+            response = await apiSubmitUpgradeRole(params);
+            break;
+          case 'approveRoleAddByFinance':
+            response = await apiApproveRoleAddByFinance(params);
             break;
           case 'approveRoleUpgradeByFinance':
             response = await apiApproveRoleUpgradeByFinance(params);
             break;
-          case 'approveRoleUpgradeByManager':
-            response = await apiApproveRoleUpgradeByManager(params);
-            break;
-          case 'editRole':
-            if (editRoleRef.value) {
-              editRoleRef.value.openDialog();
+          case 'editAddRole':
+            if (editAddRoleRef.value) {
+              editAddRoleRef.value.openDialog();
             }
             return;
-          case 'addRole':
-            if (addRoleRef.value) {
-              addRoleRef.value.openDialog();
+          case 'editUpgradeRole':
+            if (editUpgradeRoleRef.value) {
+              editUpgradeRoleRef.value.openDialog();
             }
             return;
-          case 'approveAddRole':
-            response = await apiApproveAddRole(params);
-            break;
           default:
             return;
         }
@@ -1241,6 +1413,7 @@ export default {
       }
 
       const grouped = applicationData.value.applicationPaymentRecordDTOs.reduce((acc, payment) => {
+        if (payment.status !== 1) return acc;
         const currencyName = payment.currencyName;
         acc[currencyName] = (acc[currencyName] || 0) + payment.paymentAmount;
         return acc;
@@ -1266,6 +1439,12 @@ export default {
       await showDrawer(processId.value, 'paymentRecords');
     };
 
+    // Handle adding a new payment record
+    const handlePaymentSAdded = async () => {
+      ElMessage.success(t('ViewApplicationDrawer.messages.paymentAdded'));
+      await showDrawer(processId.value, 'paymentRecords');
+    };
+
     // Handle editing a payment record
     const handlePaymentEdited = async () => {
       ElMessage.success("支付记录已更新");
@@ -1278,14 +1457,14 @@ export default {
       await showDrawer(processId.value, 'mainData');
     };
 
-    // Handle editRole action
-    const handleRoleEdited = async () => {
+    // Handle UpgradeRoleDialog action
+    const handleEditUpgradeRoled = async () => {
       isDialogVisible.value = false;
       await showDrawer(processId.value, 'mainData');
     };
 
-    // Hande addRole action
-    const handleAddRoled = async () => {
+    // Hande AddRoleDialog action
+    const handleEditAddRoled = async () => {
       isDialogVisible.value = false;
       await showDrawer(processId.value, 'mainData');
     };
@@ -1295,42 +1474,6 @@ export default {
       ElMessage.success(t('ViewApplicationDrawer.messages.linkSubmitted'));
       await showDrawer(processId.value, 'mainData');
     };
-
-    // Handle updating role
-    const handleRoleUpdated = async () => {
-      isDialogVisible.value = false;
-      await showDrawer(processId.value, 'mainData');
-    };
-
-    // Delete a payment record
-    // const deletePayment = (payment) => {
-    //   ElMessageBox.confirm(
-    //     t('ViewApplicationDrawer.confirmation.deletePaymentMessage'),
-    //     t('ViewApplicationDrawer.confirmation.deletePaymentTitle'),
-    //     {
-    //       confirmButtonText: t('ViewApplicationDrawer.confirmation.confirmButton'),
-    //       cancelButtonText: t('ViewApplicationDrawer.confirmation.cancelButton'),
-    //       type: 'warning'
-    //     }
-    //   )
-    //     .then(async () => {
-    //       try {
-    //         // Assuming there is an API to delete a payment record
-    //         const response = await deletePaymentRecord({ processId: processId.value, paymentId: payment.paymentId });
-    //         if (response.data.success) {
-    //           ElMessage.success(t('ViewApplicationDrawer.messages.paymentDeleted'));
-    //           await showDrawer(processId.value);
-    //         } else {
-    //           console.log(response.data.message || t('ViewApplicationDrawer.errors.deletePaymentFailed'));
-    //         }
-    //       } catch (error) {
-    //         console.error(error);
-    //       }
-    //     })
-    //     .catch(() => {
-    //       // User canceled
-    //     });
-    // };
 
     // Handle tab click to manage actions
     const handleTabClick = (tab, event) => {
@@ -1368,8 +1511,17 @@ export default {
       document.body.removeChild(textArea);
     };
 
+    const paymentStatusOptions = {
+      '-1': "已退款",
+      '0': "编辑中",
+      '1': "已审核",
+      '2': "审核中",
+      '3': "已退回"
+    };
+
     // Process Status options
     const processStatusOptions = {
+      '-1': "已退款",
       '5': "支付中",
       '1': "编辑中",
       '2': "财务审核中",
@@ -1386,6 +1538,7 @@ export default {
 
     // Colors for each status
     const processStatusColors = {
+      '-1': '#f56c6c', // Refunded - 红色，表示已退款
       '0': '#9E9E9E', // Canceled - 灰色，表示已废弃或无效
       '1': '#FFB74D',  // Financial Application - 橙黄色，显示申请的初始状态
       '2': '#64B5F6',  // Financial Review - 浅蓝色，突显审核过程
@@ -1418,21 +1571,22 @@ export default {
       availableActions,
       isDialogVisible,
       addPaymentRef,
+      addPaymentSRef,
       editPaymentRef,
       enrollEditRef,
-      editRoleRef,
-      addRoleRef,
+      editUpgradeRoleRef,
+      editAddRoleRef,
       requestLinkRef,
       processId,
       imagePreviewVisible,
       imagePreviewUrl,
       handlePaymentAdded,
+      handlePaymentSAdded,
       handlePaymentEdited,
       handleEnrollEditSubmitted,
-      handleRoleEdited,
-      handleAddRoled,
+      handleEditUpgradeRoled,
+      handleEditAddRoled,
       handleLinkSubmitted,
-      handleRoleUpdated,
       closeImagePreviewDialog,
       paymentActions,
       confirmPaymentAction,
@@ -1442,6 +1596,7 @@ export default {
       isDownloading,
       handleTabClick,
       openAddPaymentDialog,
+      openAddPaymentSDialog,
       openEditPaymentDialog,
       contractDialogVisible,
       contractFileList,
@@ -1459,7 +1614,11 @@ export default {
       currentPaymentRecord,
       getPaidStr,
       copyToClipboard,
-      fallbackCopyText
+      fallbackCopyText,
+      existPaymentRecords,
+      canAddRole,
+      canUpgradeRole,
+      paymentStatusOptions
     };
   }
 };
@@ -1473,33 +1632,20 @@ export default {
   text-align: right;
   padding: 10px;
 }
-.status-cancelled {
+.status-refunded {
   color: #f56c6c;
-  font-weight: bold;
-}
-.status-finished {
-  color: #67c23a;
-  font-weight: bold;
-}
-.status-submitted {
-  color: #409eff;
-  font-weight: bold;
 }
 .status-editing {
-  color: #e6a23c;
-  font-weight: bold;
+  color: #9E9E9E;
 }
-.status-paying {
-  color: #909399;
-  font-weight: bold;
+.status-approved {
+  color: #81C784;
 }
-.status-paid {
-  color: #67c23a;
-  font-weight: bold;
+.status-pending {
+  color: #64B5F6;
 }
-.status-unpaid {
-  color: #f56c6c;
-  font-weight: bold;
+.status-rejected {
+  color: #FFB74D;
 }
 .drawer-content {
   padding: 20px;

@@ -112,6 +112,23 @@
       </el-table>
     </div>
 
+    <!-- 权限列表 -->
+    <el-table
+      v-if="rolePermissions"
+      :data="rolePermissions"
+      style="width: 100%; margin-top: 20px;"
+      :border="true"
+      stripe
+      show-overflow-tooltip
+    >
+      <el-table-column prop="roleName" label="角色"></el-table-column>
+      <el-table-column prop="permissionName" label="抽佣类型"></el-table-column>
+      <el-table-column prop="rate1" label="比率1"></el-table-column>
+      <el-table-column prop="rate2" label="比率2"></el-table-column>
+      <el-table-column prop="startDate" label="生效日期"></el-table-column>
+      <el-table-column prop="endDate" label="结束日期"></el-table-column>
+    </el-table>
+
     <!-- Change Dialog -->
     <el-dialog
       :title="changeDialogTitle"
@@ -186,6 +203,12 @@ export default {
     const store = useStore();
 
     const currentUserRoleId = computed(() => store.roleId);
+    const rolePermissions = computed(() => {
+      if (!userData.value || !userData.value.rolePermissionRelationshipDTOs) {
+        return [];
+      }
+      return userData.value.rolePermissionRelationshipDTOs.filter((item) => item.status);
+    });
 
     const showDrawer = (data) => {
       userData.value = data;
@@ -223,18 +246,18 @@ export default {
 
     const formatDate = (value) => value ? new Date(value).toLocaleString() : '-';
 
-    const groupProfitsByCurrency = (profits) => {
-      if (!profits) return {};
-      return profits.reduce((acc, profit) => {
-        const currencyName = profit.currencyName || 'Unknown';
-        acc[currencyName] = (acc[currencyName] || 0) + (profit.profit || 0);
-        return acc;
-      }, {});
-    };
+    const calculatePayments = (profits) => {
+      const revenueMap = {};
 
-    const formatGroupedProfits = (profits) => {
-      return Object.entries(profits)
-        .map(([currencyName, amount]) => `${Number(amount).toLocaleString()} ${currencyName}`)
+      profits.forEach(item => {
+        if (!revenueMap[item.currencyName]) {
+          revenueMap[item.currencyName] = 0;
+        }
+        revenueMap[item.currencyName] += item.profit;
+      });
+
+      return Object.entries(revenueMap)
+        .map(([currencyName, total]) => `${total.toFixed(2)} ${currencyName}`)
         .join('<br>');
     };
 
@@ -275,7 +298,6 @@ export default {
     };
 
     const leftMainData = computed(() => {
-      const profits1 = groupProfitsByCurrency(userData.value?.profits1);
       return [
         { key: 'userId', label: "用户ID", value: userData.value.userId || '-' },
         { key: 'fullname', label: "姓名", value: userData.value.fullname || '-' },
@@ -290,7 +312,7 @@ export default {
           value: formatCurrency(userData.value.projectAmount, userData.value.projectCurrencyName)
         },
         { key: 'inviteCount', label: "邀请人数", value: userData.value.inviteCount || '-' },
-        { key: 'profits1', label: "一级分佣", value: formatGroupedProfits(profits1), isLink: userData.value?.profits1.length > 0 },
+        { key: 'profits1', label: "一级分佣", value: calculatePayments(userData.value.profits1), isLink: userData.value?.profits1.length > 0 },
         {
           key: 'platformTotalRevenue',
           label: "平台总收入",
@@ -303,7 +325,6 @@ export default {
     });
 
     const rightMainData = computed(() => {
-      const profits2 = groupProfitsByCurrency(userData.value?.profits2);
       return [
         { key: 'username', label: "用户名", value: userData.value?.username || '-' },
         { key: 'roleId', label: "角色", value: userData.value.roleName },
@@ -314,16 +335,24 @@ export default {
         { key: 'teacherName', label: "导师账号", value: userData.value.teacherName || '-' },
         { key: 'paidStr', label: "已缴纳学费", value: getPaidStr(userData.value.applicationPaymentRecordDTOs) },
         { key: 'platformInviteCount', label: "平台邀请人数", value: userData.value.platformInviteCount || '-' },
-        { key: 'profits2', label: "二级分佣", value: formatGroupedProfits(profits2), isLink: userData.value?.profits2.length > 0 },
+        { key: 'profits2', label: "二级分佣", value: calculatePayments(userData.value.profits2), isLink: userData.value?.profits2.length > 0 },
         { key: 'platformRevenueBalance', label: "平台收入余额", value: formatCurrency(userData.value.money) },
         { key: 'platformMoney', label: "平台钱包", value: formatCurrency(userData.value.userMoney) },
+        { key: 'status', label: "用户状态", value: userData.value.status ? '启用' : '禁用' },
       ];
     });
 
     // 判断某个字段是否可编辑
     const isEditable = (fieldKey) => {
-      const editableFields = ['managerName', 'teacherName', 'fullname', 'tiktokAccount', 'status'];
-      return currentUserRoleId.value === 1 && editableFields.includes(fieldKey);
+      if (currentUserRoleId.value === 1) {
+        return ['managerName', 'teacherName', 'fullname', 'tiktokAccount', 'status'].includes(fieldKey);
+      } else if (currentUserRoleId.value === 2) {
+        return ['fullname', 'tiktokAccount'].includes(fieldKey);
+      } else if (currentUserRoleId.value === 3) {
+        return ['tiktokAccount'].includes(fieldKey);
+      } else {
+        return false;
+      }
     };
 
     const getRoleName = (rolePermissions) => {
@@ -559,7 +588,8 @@ export default {
       currentEditField,
       getRoleName,
       getPaidStr,
-      formatUpdateAt
+      formatUpdateAt,
+      rolePermissions
     };
   }
 };

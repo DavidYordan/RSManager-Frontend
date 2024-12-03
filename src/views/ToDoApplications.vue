@@ -218,7 +218,9 @@
         <el-table-column prop="managerFullname" :label="$t('ViewApplications.table.managerFullname')"></el-table-column>
         <el-table-column prop="inviterFullname" :label="$t('ViewApplications.table.inviterName')">
           <template #default="scope">
-            {{ scope.row.inviterFullname || scope.row.inviterName }}
+            <span :style="{ color: !scope.row.inviterFullname ? 'red' : 'gray' }">
+              <span v-html="scope.row.inviterFullname || scope.row.initInviterName + '<br>未录入'"></span>
+            </span>
           </template>
         </el-table-column>
         <el-table-column prop="regionName" label="地区"></el-table-column>

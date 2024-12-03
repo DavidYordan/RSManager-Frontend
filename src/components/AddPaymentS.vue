@@ -1,4 +1,4 @@
-<!-- src/components/AddPayment.vue -->
+<!-- src/components/AddPaymentS.vue -->
 <template>
   <el-dialog
     title="新增支付记录"
@@ -28,11 +28,12 @@
         </el-col>
       </el-row>
 
-      <!-- 第二行：项目名称（可选）、项目金额（禁用） -->
+      <!-- 第二行：项目名称（禁用）、项目金额（禁用） -->
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="项目名称" prop="projectName">
-            <el-input v-model="form.projectName" placeholder="选择项目名称" disabled/>
+            <el-input v-model="form.projectName" placeholder="选择项目名称" disabled>
+            </el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -46,11 +47,18 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="支付方式" prop="paymentMethod">
-            <el-input v-model="form.paymentMethod" placeholder="选择支付方式" disabled/>
+            <el-select v-model="form.paymentMethod" placeholder="选择支付方式" disabled>
+              <el-option
+                v-for="option in paymentMethodOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="支付时间" prop="paymentDate">
+          <el-form-item label="付款日期" prop="paymentDate">
             <el-date-picker
               v-model="form.paymentDate"
               type="date"
@@ -142,7 +150,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { addPayment } from '@/api/application'
 import { fetchAllRegions as apifetchAllRegions } from '@/api/utils'
 import { searchPaymentAccount as apiSearchPaymentAccount } from '@/api/finance'
@@ -154,26 +162,10 @@ const props = defineProps({
     type: Number,
     required: true
   },
-  currentRegionName: {
-    type: String,
-    default: ''
+  applicationData: {
+    type: Object,
+    required: true
   },
-  currentCurrencyName: {
-    type: String,
-    default: ''
-  },
-  currentProjectName: {
-    type: String,
-    default: ''
-  },
-  currentProjectAmount: {
-    type: Number,
-    default: 0
-  },
-  currentPaymentMethod: {
-    type: String,
-    default: ''
-  }
 })
 
 // 对话框可见性
@@ -181,19 +173,26 @@ const dialogVisible = ref(false)
 
 const isSubmitting = ref(false)
 
+const actionStr = ref({})
+
 // 表单数据
 const form = ref({
-  regionName: props.currentRegionName,
-  currencyName: props.currentCurrencyName,
+  regionName: '',
+  currencyName: '',
   paymentAmount: null,
   fee: null,
   paymentDate: '',
-  comments: '新增支付记录',
+  comments: '',
   uploadFile: null,
-  projectName: props.currentProjectName,
-  projectAmount: props.currentProjectAmount,
-  paymentMethod: props.currentPaymentMethod,
+  projectName: '',
+  projectAmount: null,
+  paymentMethod: '',
   paymentAccount: '',
+  roleId: null,
+  fullname: '',
+  rateA: '',
+  rateB: '',
+  startDate: '',
 })
 
 // 表单验证规则
@@ -277,6 +276,8 @@ const loadAllTypes = async () => {
             projectMap[uniqueId2]['projectAmount'] = region.projectAmount
         }
       })
+
+
     } else {
       ElMessage.error("获取类型数据失败")
     }
@@ -284,6 +285,12 @@ const loadAllTypes = async () => {
     ElMessage.error("获取类型数据失败:" + error)
   }
 }
+
+const projectNameOptions = computed(() => {
+  return regionOptions.value
+    .filter(region => region.regionName === form.value.regionName)
+    .map(region => region.projectName)
+})
 
 const paymentAccountOptions = ref([])
 const paymentAccountMap = ref({})
@@ -331,6 +338,9 @@ const updateProjectAmount = () => {
 // 打开对话框的方法
 const openDialog = async () => {
   dialogVisible.value = true
+  actionStr.value = JSON.parse(props.applicationData.actionStr)
+  console.log('actionStr.value', actionStr.value)
+  initializeForm();
   await loadAllTypes()
   await fetchPaymentAccounts()
   // 确保在加载完数据后更新项目金额
@@ -339,24 +349,38 @@ const openDialog = async () => {
 
 // 重置表单
 const resetForm = () => {
-  dialogVisible.value = false
-  form.value = {
-    regionName: props.currentRegionName,
-    currencyName: props.currentCurrencyName,
-    paymentAmount: null,
-    fee: null,
-    paymentDate: null,
-    comments: '新增支付记录',
-    uploadFile: null,
-    projectName: props.currentProjectName || '',
-    projectAmount: props.currentProjectAmount || 0,
-    paymentMethod: '',
-    paymentAccount: '',
-  }
-  fileList.value = []
-  // 重置后更新项目金额
+  initializeForm();
   updateProjectAmount()
 }
+
+const isInitializing = ref(false)
+const oldStatus = ref(null)
+
+const initializeForm = () => {
+  isInitializing.value = true;
+  if (props.applicationData) {
+    oldStatus.value = actionStr.value.oldStatus
+    form.value.roleId = actionStr.value.roleId
+    form.value.fullname = actionStr.value.fullname
+    form.value.regionName = props.applicationData.regionName
+    form.value.currencyName = actionStr.value.currencyName
+    form.value.projectName = actionStr.value.projectName
+    form.value.projectAmount = actionStr.value.projectAmount
+    form.value.rateA = actionStr.value.rateA
+    form.value.rateB = actionStr.value.rateB
+    form.value.paymentDate = new Date(actionStr.value.startDate)
+    form.value.paymentMethod = actionStr.value.paymentMethod
+    form.value.comments = actionStr.value.comments
+  }
+
+  updateProjectAmount();
+
+  nextTick(() => {
+    isInitializing.value = false;
+  });
+}
+
+
 
 // 上传前处理
 const beforeUpload = (file) => {
@@ -430,7 +454,8 @@ const onSubmit = () => {
         await addPayment(formData)
         ElMessage.success("提交成功")
         resetForm()
-        emit('paymentAdded') // 触发父组件事件
+        dialogVisible.value = false
+        emit('paymentSAdded') // 触发父组件事件
       } catch (error) {
         ElMessage.error("提交失败")
       } finally {
@@ -444,7 +469,7 @@ const onSubmit = () => {
 }
 
 // 定义 emits
-const emit = defineEmits(['paymentAdded'])
+const emit = defineEmits(['paymentSAdded'])
 
 // 暴露 openDialog 方法给父组件
 defineExpose({

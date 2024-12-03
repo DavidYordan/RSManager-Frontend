@@ -1,636 +1,1041 @@
 <template>
   <div class="config-container">
-
-    <!-- 默认项目配置 -->
-    <el-card class="config-card">
-      <h2 class="section-title">{{ t('globalConfig.projectsTitle') }}</h2>
-      <el-table :data="projects" :border="true" size="default" style="width: 100%">
-        <el-table-column
-          prop="projectId"
-          :label="t('globalConfig.projectLevel')"
-        >
-          <template #default="{ row }">
-            <span>{{ roleLevelMap[row.roleId] }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="projectName"
-          :label="$t('globalConfig.projectName')"
-        >
-          <template #default="{ row }">
-            <el-input
-              v-if="row.isEditing"
-              v-model="row.projectName"
-              placeholder="请输入项目名称"
-              size="small"
-              class="editable-input"
-            />
-            <span v-else>{{ row.projectName }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="projectAmount"
-          :label="$t('globalConfig.projectAmount')"
-        >
-          <template #default="{ row }">
-            <el-input
-              v-if="row.isEditing"
-              v-model="row.projectAmount"
-              placeholder="请输入项目金额"
-              size="small"
-              class="editable-input"
-            />
-            <span v-else>{{ row.projectAmount }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="$t('globalConfig.actions')"
-        >
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              @click="editProject(row)"
-              v-if="!row.isEditing"
-            >
-              {{ t('globalConfig.edit') }}
-            </el-button>
-            <el-button
-              type="success"
-              size="small"
-              @click="updateProject(row)"
-              v-if="row.isEditing"
-              :disabled="!isProjectChanged(row)"
-            >
-              {{ t('globalConfig.update') }}
-            </el-button>
-            <el-button
-              type="warning"
-              size="small"
-              @click="cancelEditProject(row)"
-              v-if="row.isEditing"
-            >
-              {{ t('globalConfig.cancel') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
     <!-- 地区项目配置 -->
     <el-card class="config-card">
-      <h2 class="section-title">{{ t('globalConfig.regionsTitle') }}</h2>
-      <el-table
-        :data="regions"
-        :border="true"
-        size="default"
-        style="width: 100%"
-        :span-method="regionSpanMethod"
+      <h2 class="section-title">地区项目配置</h2>
+      <el-button
+        type="primary"
+        @click="addRegionProjectGroup"
       >
-        <!-- 地区代码列 -->
-        <el-table-column
-          prop="regionCode"
-          :label="$t('globalConfig.regionCode')"
-        >
-          <template #default="{ row }">
-            <template v-if="row.isFirst">
-              <el-input
-                v-if="row.isEditing"
-                v-model="row.regionCode"
-                placeholder="请输入地区代码"
-                size="small"
-                class="editable-input"
-              />
-              <span v-else>{{ row.regionCode }}</span>
-            </template>
-          </template>
-        </el-table-column>
-
+        新增
+      </el-button>
+      <el-table
+        :data="processedRegionProjects"
+        :span-method="spanMethod"
+        style="width: 100%; margin-top: 10px;"
+        :border="true"
+      >
         <!-- 地区名称列 -->
         <el-table-column
           prop="regionName"
-          :label="$t('globalConfig.regionName')"
+          label="地区"
         >
           <template #default="{ row }">
-            <template v-if="row.isFirst">
-              <el-input
-                v-if="row.isEditing"
+            <template v-if="row.isPEditing && isFirstRowInGroup(row)">
+              <el-select
                 v-model="row.regionName"
-                placeholder="请输入地区名称"
-                size="small"
-                class="editable-input"
-              />
-              <span v-else>{{ row.regionName }}</span>
+                placeholder="选择地区"
+                @change="onRegionChange(row)"
+              >
+                <el-option
+                  v-for="option in optionsForRegions"
+                  :key="option.regionCode"
+                  :label="option.regionName"
+                  :value="option.regionName"
+                />
+              </el-select>
+            </template>
+            <template v-else>
+              {{ row.regionName }}
             </template>
           </template>
         </el-table-column>
 
         <!-- 币种列 -->
         <el-table-column
-          prop="currency"
-          :label="$t('globalConfig.currency')"
+          prop="currencyName"
+          label="币种"
         >
           <template #default="{ row }">
-            <template v-if="row.isFirst">
-              <el-input
-                v-if="row.isEditing"
-                v-model="row.currency"
-                placeholder="请输入币种"
-                size="small"
-                class="editable-input"
-              />
-              <span v-else>{{ row.currency }}</span>
+            <template v-if="row.isPEditing && isFirstRowInGroup(row)">
+              <el-select
+                v-model="row.currencyName"
+                placeholder="选择币种"
+                @change="onCurrencyChange(row)"
+              >
+                <el-option
+                  v-for="option in currencyOptions"
+                  :key="option.currencyCode"
+                  :label="option.currencyName"
+                  :value="option.currencyName"
+                />
+              </el-select>
             </template>
+            <template v-else>
+              {{ row.currencyName }}
+            </template>
+          </template>
+        </el-table-column>
+
+        <!-- 角色列 -->
+        <el-table-column
+          prop="roleId"
+          label="角色"
+        >
+          <template #default="{ row }">
+            {{ roleMap[row.roleId] }}
           </template>
         </el-table-column>
 
         <!-- 项目名称列 -->
         <el-table-column
           prop="projectName"
-          :label="$t('globalConfig.projectName')"
+          label="项目名称"
         >
           <template #default="{ row }">
-            <el-input
-              v-if="row.isEditing"
-              v-model="row.projectName"
-              placeholder="请输入项目名称"
-              size="small"
-              class="editable-input"
-            />
-            <span v-else>{{ row.projectName }}</span>
+            <template v-if="row.isPEditing || row.isREditing">
+              <el-select
+                v-model="row.projectName"
+                placeholder="选择项目"
+              >
+                <el-option
+                  v-for="option in optionsForProjects"
+                  :key="option.projectId"
+                  :label="option.projectName"
+                  :value="option.projectName"
+                />
+              </el-select>
+            </template>
+            <template v-else>
+              {{ row.projectName }}
+            </template>
           </template>
         </el-table-column>
 
         <!-- 项目金额列 -->
         <el-table-column
           prop="projectAmount"
-          :label="$t('globalConfig.projectAmount')"
+          label="项目金额"
         >
           <template #default="{ row }">
-            <el-input
-              v-if="row.isEditing"
-              v-model="row.projectAmount"
-              placeholder="请输入项目金额"
-              size="small"
-              class="editable-input"
-            />
-            <span v-else>{{ row.projectAmount }}</span>
+            <template v-if="row.isPEditing || row.isREditing">
+              <el-input
+                v-model.number="row.projectAmount"
+                type="number"
+              />
+          </template>
           </template>
         </el-table-column>
 
-        <!-- 操作列 -->
+        <!-- 行操作 -->
         <el-table-column
-          prop="actions"
-          :label="$t('globalConfig.actions')"
+          label="行操作"
+          prop="projectActions"
+          width="180"
         >
           <template #default="{ row }">
-            <div v-if="row.isFirst" class="actions-cell">
-              <el-button
-                type="primary"
-                size="small"
-                @click="editRegion(row)"
-                v-if="!row.isEditing"
-              >
-                {{ t('globalConfig.edit') }}
-              </el-button>
-              <el-button
-                type="success"
-                size="small"
-                @click="updateRegion(row)"
-                v-if="row.isEditing"
-                :disabled="!isRegionChanged(row)"
-              >
-                {{ t('globalConfig.update') }}
-              </el-button>
-              <el-button
-                type="warning"
-                size="small"
-                @click="cancelEditRegion(row)"
-                v-if="row.isEditing"
-              >
-                {{ t('globalConfig.cancel') }}
-              </el-button>
-              <el-button
-                type="danger"
-                size="small"
-                @click="deleteRegion(row)"
-                v-if="!row.isEditing"
-              >
-                {{ t('globalConfig.delete') }}
-              </el-button>
-            </div>
+            <el-button
+              v-if="!row.isPEditing && !row.isREditing"
+              size="small"
+              @click="editRow(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-if="row.isREditing && !row.isAddingRow"
+              size="small"
+              @click="cancelEditRow(row)"
+            >
+              取消
+            </el-button>
+            <el-button
+              v-if="row.isREditing && !row.isAddingRow"
+              size="small"
+              type="primary"
+              @click="updateRow(row)"
+            >
+              更新
+            </el-button>
+            <el-button
+              v-if="!row.isREditing && !row.isPEditing"
+              size="small"
+              type="danger"
+              @click="deleteRow(row)"
+            >
+              删除
+            </el-button>
+            <el-button
+              v-if="row.isAddingRow"
+              size="small"
+              type="primary"
+              @click="saveNewRow(row)"
+            >
+              保存
+            </el-button>
+            <el-button
+              v-if="row.isAddingRow"
+              size="small"
+              @click="cancelNewRow(row)"
+            >
+              取消
+            </el-button>
           </template>
         </el-table-column>
 
+        <!-- 组操作 -->
+        <el-table-column
+          label="组操作"
+          prop="groupActions"
+          width="180"
+        >
+          <template #default="{ row }">
+            <template v-if="isFirstRowInGroup(row)">
+              <el-button
+                v-if="!isGroupRowEditing(row) && !row.isPEditing"
+                size="small"
+                @click="editGroup(row.groupId)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                v-if="!isGroupRowEditing(row) && row.isPEditing"
+                size="small"
+                @click="cancelEditGroup(row.groupId)"
+              >
+                取消
+              </el-button>
+              <el-button
+                v-if="!isGroupRowEditing(row) && row.isPEditing"
+                size="small"
+                type="primary"
+                @click="updateGroup(row.groupId)"
+              >
+                更新
+              </el-button>
+              <el-button
+                v-if="!isGroupRowEditing(row) && !row.isPEditing"
+                size="small"
+                type="danger"
+                @click="deleteGroup(row.groupId)"
+              >
+                删除
+              </el-button>
+              <el-button
+                v-if="!isGroupRowEditing(row)  && !row.isPEditing"
+                size="small"
+                type="primary"
+                @click="addRegionProjectRow(row)"
+              >
+                新增
+              </el-button>
+              <el-button
+                v-if="row.isAddingGroup"
+                size="small"
+                type="primary"
+                @click="saveNewGroup(row)"
+              >
+                保存
+              </el-button>
+              <el-button
+                v-if="row.isAddingGroup"
+                size="small"
+                @click="cancelNewGroup(row)"
+              >
+                取消
+              </el-button>
+            </template>
+          </template>
+        </el-table-column>
       </el-table>
+    </el-card>
 
-      <el-button type="success" @click="addRegion" class="add-region-btn">
-        {{ t('globalConfig.addRegion') }}
+    <!-- 项目配置 -->
+    <el-card class="config-card">
+      <h2 class="section-title">默认项目配置</h2>
+      <el-button 
+        type="primary"
+        @click="addProjectRow"
+      >
+        新增
       </el-button>
+      <el-table :data="projectDTOs" style="width: 100%; margin-top: 10px" :border="true">
+        <el-table-column prop="projectId" label="项目ID" width="80" />
+        <el-table-column prop="projectName" label="项目名称" >
+          <template #default="{ row }">
+            <template v-if="row.isEditing">
+              <el-input v-model="row.projectName" />
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column prop="projectAmount" label="项目金额" >
+          <template #default="{ row }">
+            <template v-if="row.isEditing">
+              <el-input v-model.number="row.projectAmount" type="number" />
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180">
+          <template #default="{ row }">
+            <el-button
+              v-if="!row.isEditing"
+              size="small"
+              @click="editProject(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-if="row.isEditing && !row.isAdding"
+              size="small"
+              @click="cancelEditProject(row)"
+            >
+              取消
+            </el-button>
+            <el-button
+              v-if="row.isEditing && !row.isAdding"
+              size="small"
+              type="primary"
+              @click="updateProject(row)"
+            >
+              更新
+            </el-button>
+            <el-button
+              v-if="!row.isEditing && !row.isAdding"
+              size="small"
+              type="danger"
+              @click="deleteProject(row)"
+            >
+              删除
+            </el-button>
+            <el-button
+              v-if="row.isAdding"
+              size="small"
+              type="primary"
+              @click="saveNewProject(row)"
+            >
+              保存
+            </el-button>
+            <el-button
+              v-if="row.isAdding"
+              size="small"
+              @click="cancelNewProject(row)"
+            >
+              取消
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 地区和币种配置 -->
+    <el-card class="config-card">
+      <h2 class="section-title">地区和币种配置</h2>
+      <el-button
+        type="primary"
+        @click="addRegionCurrencyRow"
+      >
+        新增
+      </el-button>
+      <el-table :data="regionCurrencyDTOs" style="width: 100%; margin-top: 10px" :border="true">
+        <el-table-column prop="regionName" label="地区">
+          <template #default="{ row }">
+            <template v-if="row.isEditing">
+              <el-input v-model="row.regionName" />
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column prop="regionCode" label="地区代码">
+          <template #default="{ row }">
+            <template v-if="row.isEditing">
+              <el-input v-model="row.regionCode" />
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column prop="currencyName" label="币种">
+          <template #default="{ row }">
+            <template v-if="row.isEditing">
+              <el-input v-model="row.currencyName" />
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column prop="currencyCode" label="币种代码">
+          <template #default="{ row }">
+            <template v-if="row.isEditing">
+              <el-input v-model="row.currencyCode" />
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column prop="rate" label="汇率" />
+        <el-table-column label="操作" width="180">
+          <template #default="{ row }">
+            <el-button
+              v-if="!row.isEditing && !row.isAdding"
+              size="small"
+              @click="editRegionCurrency(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-if="row.isEditing && !row.isAdding"
+              size="small"
+              @click="cancelEditRegionCurrency(row)"
+            >
+              取消
+            </el-button>
+            <el-button
+              v-if="row.isEditing && !row.isAdding"
+              size="small"
+              type="primary"
+              @click="updateRegionCurrency(row)"
+            >
+              更新
+            </el-button>
+            <el-button
+              v-if="!row.isEditing && !row.isAdding"
+              size="small"
+              type="danger"
+              @click="deleteRegionCurrency(row)"
+            >
+              删除
+            </el-button>
+            <el-button
+              v-if="row.isAdding"
+              size="small"
+              type="primary"
+              @click="saveNewRegionCurrency(row)"
+            >
+              保存
+            </el-button>
+            <el-button
+              v-if="row.isAdding"
+              size="small"
+              @click="cancelNewRegionCurrency(row)"
+            >
+              取消
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-card>
   </div>
 </template>
 
-
 <script>
-import { ref, onMounted } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   fetchAllTypes,
-  updateRolePermissions as apiUpdateRolePermissions,
-  updateProject as apiUpdateProject,
-  updateRegion as apiUpdateRegion,
-  deleteRegion as apiDeleteRegion,
+  updateRegionProjects,
+  deleteRegionProjects,
+  updateProject,
+  updateRegionCurrency,
 } from '@/api/utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 export default {
-  name: 'GlobalConfig',
+  name: 'RegionProjectsConfig',
   setup() {
-    const { t } = useI18n();
+    const projectDTOs = ref([]);
+    const regionCurrencyDTOs = ref([]);
+    const regionProjectsDTOs = ref([]);
 
-    const roles = ref([]);
-    const projects = ref([]);
-    const regions = ref([]);
+    const processedRegionProjects = ref([]);
+    let newGroupId = -1;
 
-    const originalProjects = ref([]);
-    const originalRegions = ref([]);
-
-    const roleLevelMap = {
-      4: '高阶',
-      5: '中阶',
-      6: '初阶'
+    const addProjectRow = () => {
+      const newProject = {
+        projectId: null,
+        projectName: '',
+        projectAmount: null,
+        isAdding: true,
+        isEditing: true,
+      };
+      projectDTOs.value.unshift(newProject);
     };
+
+    const saveNewProject = async (row) => {
+      const payload = {
+        projectName: row.projectName,
+        projectAmount: row.projectAmount,
+      };
+      try {
+        const response = await addProject(payload);
+        if (response.data && response.data.success) {
+          row.projectId = response.data.data.projectId;
+          row.isAdding = false;
+          row.original = { ...row };
+          ElMessage.success('项目新增成功');
+        } else {
+          ElMessage.error('新增失败: ' + response.data.message);
+        }
+      } catch (error) {
+        console.error('Failed to add project:', error);
+        ElMessage.error('新增项目时发生错误');
+      }
+    };
+
+    const cancelNewProject = (row) => {
+      const index = projectDTOs.value.findIndex((item) => item === row);
+      if (index !== -1) {
+        projectDTOs.value.splice(index, 1);
+      }
+    };
+
+    const addRegionProjectGroup = () => {
+      const newGroupRow = {
+        groupId: newGroupId--,
+        regionName: '',
+        regionCode: '',
+        currencyName: '',
+        currencyCode: '',
+        projectName: '',
+        projectId: '',
+        projectAmount: null,
+        roleId: '',
+        isREditing: true,
+        isPEditing: true,
+        isAddingGroup: true,
+        original: {},
+      };
+      processedRegionProjects.value.unshift(newGroupRow);
+    };
+
+    const saveNewGroup = async (row) => {
+      const requestData = [
+        {
+          regionCode: row.regionCode,
+          currencyCode: row.currencyCode,
+          projectId: row.projectId,
+          projectAmount: row.projectAmount,
+        },
+      ];
+      try {
+        const response = await addRegionProjects(requestData);
+        if (response.data && response.data.success) {
+          // 重新获取数据
+          await fetchData();
+          ElMessage.success('新增组成功');
+        } else {
+          ElMessage.error('新增失败: ' + response.data.message);
+        }
+      } catch (error) {
+        console.error('Failed to add region project group:', error);
+        ElMessage.error('新增组时发生错误');
+      }
+    };
+
+    const cancelNewGroup = (row) => {
+      const index = processedRegionProjects.value.findIndex((item) => item === row);
+      if (index !== -1) {
+        processedRegionProjects.value.splice(index, 1);
+      }
+    };
+
+    const addRegionProjectRow = (row) => {
+      const newRow = {
+        groupId: row.groupId,
+        regionName: row.regionName,
+        regionCode: row.regionCode,
+        currencyName: row.currencyName,
+        currencyCode: row.currencyCode,
+        projectName: '',
+        projectId: '',
+        projectAmount: null,
+        roleId: '',
+        isREditing: true,
+        isAddingRow: true,
+        original: {},
+      };
+      // const index = processedRegionProjects.value.findIndex((item) => item === row);
+      // processedRegionProjects.value.splice(index + 1, 0, newRow);
+      processedRegionProjects.value.push(newRow);
+      sortProcessedRegionProjects();
+    };
+
+    const sortProcessedRegionProjects = () => {
+      processedRegionProjects.value.sort((a, b) => {
+        if (a.regionName === b.regionName) {
+          return a.currencyName.localeCompare(b.currencyName);
+        }
+        return a.regionName.localeCompare(b.regionName);
+      });
+    };
+
+    const saveNewRow = async (row) => {
+      const requestData = [
+        {
+          regionCode: row.regionCode,
+          currencyCode: row.currencyCode,
+          projectId: row.projectId,
+          projectAmount: row.projectAmount,
+        },
+      ];
+      try {
+        const response = await addRegionProjects(requestData);
+        if (response.data && response.data.success) {
+          // 重新获取数据
+          await fetchData();
+          ElMessage.success('新增行成功');
+        } else {
+          ElMessage.error('新增失败: ' + response.data.message);
+        }
+      } catch (error) {
+        console.error('Failed to add region project row:', error);
+        ElMessage.error('新增行时发生错误');
+      }
+    };
+
+    const cancelNewRow = (row) => {
+      const index = processedRegionProjects.value.findIndex((item) => item === row);
+      if (index !== -1) {
+        processedRegionProjects.value.splice(index, 1);
+      }
+    };
+
+    const addRegionCurrencyRow = () => {
+      const newRegionCurrency = {
+        regionCode: '',
+        regionName: '',
+        currencyCode: '',
+        currencyName: '',
+        rate: null,
+        isAdding: true,
+        isEditing: true,
+      };
+      regionCurrencyDTOs.value.unshift(newRegionCurrency);
+    };
+
+    const saveNewRegionCurrency = async (row) => {
+      const payload = {
+        regionCode: row.regionCode,
+        regionName: row.regionName,
+        currencyCode: row.currencyCode,
+        currencyName: row.currencyName,
+      };
+      try {
+        const response = await addRegionCurrency(payload);
+        if (response.data && response.data.success) {
+          row.isAdding = false;
+          row.original = { ...row };
+          ElMessage.success('地区和币种新增成功');
+        } else {
+          ElMessage.error('新增失败: ' + response.data.message);
+        }
+      } catch (error) {
+        console.error('Failed to add region currency:', error);
+        ElMessage.error('新增地区和币种时发生错误');
+      }
+    };
+
+    const cancelNewRegionCurrency = (row) => {
+      const index = regionCurrencyDTOs.value.findIndex((item) => item === row);
+      if (index !== -1) {
+        regionCurrencyDTOs.value.splice(index, 1);
+      }
+    };
+
+    const optionsForRegions = computed(() => {
+      // 提取地区选项
+      return regionCurrencyDTOs.value.map(item => ({
+        regionCode: item.regionCode,
+        regionName: item.regionName,
+        currencyCode: item.currencyCode,
+        currencyName: item.currencyName,
+      }));
+    });
+
+    const optionsForProjects = computed(() => {
+      // 提取项目选项
+      return projectDTOs.value.map(item => ({
+        projectId: item.projectId,
+        projectName: item.projectName,
+        roleId: item.roleId,
+      }));
+    });
+
+    const roleMap = {
+      4: '高阶学员',
+      5: '中阶学员',
+      6: '初阶学员',
+    };
+
+    // 监听单行 projectName 的变化，更新本行 roleId
+    watch(processedRegionProjects, (newVal, oldVal) => {
+      newVal.forEach(row => {
+        if (row.isPEditing) {
+          const project = projectDTOs.value.find(item => item.projectName === row.projectName);
+          if (project) {
+            row.projectId = project.projectId;
+            row.roleId = project.roleId;
+          }
+        }
+      });
+    }, { deep: true });
+
+    const currencyOptions = computed(() => {
+      // 提取唯一的币种选项
+      const currencies = {};
+      regionCurrencyDTOs.value.forEach(item => {
+        currencies[item.currencyName] = item.currencyCode;
+      });
+      return Object.keys(currencies).map(name => ({
+        currencyName: name,
+        currencyCode: currencies[name],
+      }));
+    });
 
     const fetchData = async () => {
       try {
         const response = await fetchAllTypes();
-        if (response.data.success) {
-          const data = response.data.data;
+        console.log(response);
+        if (response.data && response.data.success) {
+          projectDTOs.value = response.data.data.projectDTOs;
+          regionCurrencyDTOs.value = response.data.data.regionCurrencyDTOs;
+          regionProjectsDTOs.value = response.data.data.regionProjectsDTOs;
 
-          // 处理项目
-          projects.value = data.projectDTOs.map(project => ({
-            ...project,
-            isEditing: false,
-            original: { ...project },
-          }));
-          originalProjects.value = JSON.parse(JSON.stringify(projects.value));
-
-          // 处理地区
-          regions.value = data.regionProjectsDTOs
-          .sort((a, b) => a.regionId - b.regionId)
-          .flatMap(region => {
-            region.regionProjectDTOs.sort((a, b) => a.projectId - b.projectId);
-            return region.regionProjectDTOs.map((proj, index) => ({
-              regionId: region.regionId,
-              regionCode: region.regionCode,
-              regionName: region.regionName,
-              currency: region.currency,
-              isEditing: region.isEditing || false,
-              projectId: proj.projectId,
-              projectName: proj.projectName,
-              projectAmount: proj.projectAmount,
-              projectIsEditing: proj.isEditing || false,
-              original: {
-                regionCode: region.regionCode,
-                regionName: region.regionName,
-                currency: region.currency,
-                projectName: proj.projectName,
-                projectAmount: proj.projectAmount,
-              },
-              isFirst: index === 0,
-            }));
-          });
-          originalRegions.value = JSON.parse(JSON.stringify(regions.value));
+          processRegionProjects();
+          processReginCurrencies();
+          processProjects();
+        } else {
+          ElMessage.error('获取数据失败');
         }
       } catch (error) {
-        console.error('Failed to fetch configurations:', error);
+        console.error(error);
+        ElMessage.error('获取数据出错: ' + error.message);
       }
     };
 
     onMounted(fetchData);
 
-    // 角色权限表格的合并单元格方法
-    const roleSpanMethod = ({ row, column, rowIndex, columnIndex }) => {
-      if (column.property === 'roleName') {
-        if (row.isFirst) {
-          const count = roles.value.filter(r => r.roleId === row.roleId).length;
-          return { rowspan: count, colspan: 1 };
+    const processRegionProjects = () => {
+      const data = [];
+      const groupMap = {};
+      let groupId = 0;
+
+      // 对数据进行排序，确保相同的groupId的行是连续的
+      regionProjectsDTOs.value.sort((a, b) => {
+        if (a.regionName === b.regionName) {
+          return a.currencyName.localeCompare(b.currencyName);
+        }
+        return a.regionName.localeCompare(b.regionName);
+      });
+
+      regionProjectsDTOs.value.forEach(item => {
+        const groupKey = item.regionName + '_' + item.currencyName;
+        if (!groupMap[groupKey]) {
+          groupId++;
+          groupMap[groupKey] = groupId;
+        }
+        data.push({
+          ...item,
+          groupId: groupMap[groupKey],
+          isREditing: false,
+          isPEditing: false,
+          isAddingGroup: false,
+          isAddingRow: false,
+          original: { ...item },
+        });
+      });
+
+      processedRegionProjects.value = data;
+    };
+
+    const processReginCurrencies = () => {
+      regionCurrencyDTOs.value.forEach(item => {
+        item.isEditing = false;
+        item.isAdding = false;
+        item.original = { ...item };
+      });
+    };
+
+    const processProjects = () => {
+      projectDTOs.value.forEach(item => {
+        item.isEditing = false;
+        item.isAdding = false;
+        item.original = { ...item };
+      });
+    };
+
+    const spanMethod = ({ row, column, rowIndex }) => {
+      if (['regionName', 'currencyName', 'groupActions'].includes(column.property)) {
+        // const groupRows = processedRegionProjects.value.filter(item => item.groupId === row.groupId);
+        // const firstIndex = processedRegionProjects.value.findIndex(item => item === groupRows[0]);
+        const firstIndex = processedRegionProjects.value.findIndex(item => item.groupId === row.groupId);
+        const groupLength = processedRegionProjects.value.filter(item => item.groupId === row.groupId).length;
+        if (rowIndex === firstIndex) {
+          return {
+            // rowspan: groupRows.length,
+            rowspan: groupLength,
+            colspan: 1,
+          };
         } else {
-          return { rowspan: 0, colspan: 0 };
+          return {
+            rowspan: 0,
+            colspan: 0,
+          };
         }
       }
       return { rowspan: 1, colspan: 1 };
     };
 
-    // 角色权限部分方法
-    const editRolePermission = (row) => {
-      row.isEditing = true;
+    const isFirstRowInGroup = (row) => {
+      // const groupRows = processedRegionProjects.value.filter(item => item.groupId === row.groupId);
+      // return groupRows[0] === row;
+      const firstIndex = processedRegionProjects.value.findIndex(item => item.groupId === row.groupId);
+      return processedRegionProjects.value[firstIndex] === row;
     };
 
-    const cancelEditRolePermission = (row) => {
-      // 恢复原始值
-      row.rate1 = row.original.rate1;
-      row.rate2 = row.original.rate2;
-      row.isEnabled = row.original.isEnabled;
+    const isGroupRowEditing = (groupId) => {
+      return processedRegionProjects.value.some(row => row.groupId === groupId && (row.isREditing));
+    };
+
+    const editRow = (row) => {
+      row.isREditing = true;
+    };
+
+    const cancelEditRow = (row) => {
+      Object.assign(row, row.original);
+      row.isREditing = false;
+    };
+
+    const updateRow = async (row) => {
+      const requestData = [{
+        regionCode: row.regionCode,
+        currencyCode: row.currencyCode,
+        projectId: row.projectId,
+        projectAmount: row.projectAmount,
+      }];
+
+      try {
+        const response = await updateRegionProjects(requestData);
+        if (response.data && response.data.success) {
+          row.original = { ...row };
+          row.isREditing = false;
+          ElMessage.success('更新成功');
+        } else {
+          ElMessage.error('更新失败: ' + response.data.message);
+        }
+      } catch (error) {
+        console.error(error);
+        ElMessage.error('更新失败');
+      }
+    };
+
+    const deleteRow = async (row) => {
+      try {
+        await ElMessageBox.confirm('确定删除此项目吗?', '提示', {
+          type: 'warning',
+        });
+
+        const requestData = [{
+          regionCode: row.regionCode,
+          currencyCode: row.currencyCode,
+          projectId: row.projectId,
+        }];
+
+        const response = await deleteRegionProjects(requestData);
+        if (response.data && response.data.success) {
+          const index = processedRegionProjects.value.findIndex(item => item === row);
+          if (index !== -1) {
+            processedRegionProjects.value.splice(index, 1);
+          }
+          ElMessage.success('删除成功');
+        } else {
+          ElMessage.error('删除失败: ' + response.data.message);
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error(error);
+          ElMessage.error('删除失败');
+        }
+      }
+    };
+
+    const editGroup = (groupId) => {
+      processedRegionProjects.value.forEach(item => {
+        if (item.groupId === groupId) {
+          item.isPEditing = true;
+        }
+      });
+    };
+
+    const cancelEditGroup = (groupId) => {
+      processedRegionProjects.value.forEach(item => {
+        if (item.groupId === groupId) {
+          Object.assign(item, item.original);
+          item.isPEditing = false;
+        }
+      });
+    };
+
+    const updateGroup = async (groupId) => {
+      const groupRows = processedRegionProjects.value.filter(item => item.groupId === groupId);
+      const requestData = groupRows.map(row => ({
+        regionCode: row.regionCode,
+        currencyCode: row.currencyCode,
+        projectId: row.projectId,
+        projectAmount: row.projectAmount,
+      }));
+
+      try {
+        const response = await updateRegionProjects(requestData);
+        if (response.data && response.data.success) {
+          groupRows.forEach(row => {
+            row.original = { ...row };
+            row.isPEditing = false;
+          });
+          ElMessage.success('更新成功');
+        } else {
+          ElMessage.error('更新失败: ' + response.data.message);
+        }
+      } catch (error) {
+        console.error(error);
+        ElMessage.error('更新失败');
+      }
+    };
+
+    const deleteGroup = async (groupId) => {
+      try {
+        await ElMessageBox.confirm('确定删除此地区和币种的所有项目吗?', '提示', {
+          type: 'warning',
+        });
+
+        const groupRows = processedRegionProjects.value.filter(item => item.groupId === groupId);
+        const requestData = groupRows.map(row => ({
+          regionCode: row.regionCode,
+          currencyCode: row.currencyCode,
+          projectId: row.projectId,
+        }));
+
+        const response = await deleteRegionProjects(requestData);
+        if (response.data && response.data.success) {
+          processedRegionProjects.value = processedRegionProjects.value.filter(item => item.groupId !== groupId);
+          ElMessage.success('删除成功');
+        } else {
+          ElMessage.error('删除失败: ' + response.data.message);
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error(error);
+          ElMessage.error('删除失败');
+        }
+      }
+    };
+
+    const onRegionChange = (row) => {
+      const region = regionCurrencyDTOs.value.find(item => item.regionName === row.regionName);
+      if (region) {
+        row.regionCode = region.regionCode;
+        row.currencyName = region.currencyName;
+        row.currencyCode = region.currencyCode;
+      } else {
+        row.regionCode = null;
+        row.currencyName = '';
+        row.currencyCode = '';
+      }
+    };
+
+    const onCurrencyChange = (row) => {
+      const currency = currencyOptions.value.find(item => item.currencyName === row.currencyName);
+      if (currency) {
+        row.currencyCode = currency.currencyCode;
+      } else {
+        row.currencyCode = '';
+      }
+    };
+
+    // 项目配置部分的方法
+    const editProject = (row) => {
+      row.isEditing = true;
+      row.original = { ...row };
+    };
+
+    const cancelEditProject = (row) => {
+      Object.assign(row, row.original);
       row.isEditing = false;
     };
 
-    const isRowChanged = (row) => {
-      const original = row.original;
-      return (
-        original.rate1 !== row.rate1 ||
-        original.rate2 !== row.rate2 ||
-        original.isEnabled !== row.isEnabled
-      );
-    };
-
-    const updateRolePermission = async (row) => {
+    const updateProject = async (row) => {
       const payload = {
-        roleId: row.roleId,
-        permissionId: row.permissionId,
-        rate1: row.rate1,
-        rate2: row.rate2,
-        isEnabled: row.isEnabled,
+        projectId: row.projectId,
+        projectName: row.projectName,
+        projectAmount: row.projectAmount,
       };
       try {
-        const response = await apiUpdateRolePermissions(payload);
-        if (response.data.success) {
-          // 更新原始数据
-          row.original.rate1 = row.rate1;
-          row.original.rate2 = row.rate2;
-          row.original.isEnabled = row.isEnabled;
+        const response = await updateProject(payload);
+        if (response.data && response.data.success) {
+          row.original = { ...row };
           row.isEditing = false;
-          // 可选：显示成功消息
-          // ElMessage.success('角色权限更新成功');
+          ElMessage.success('项目更新成功');
         } else {
-          // 处理失败，例如显示消息
-          console.error('Update role permission failed:', response.data.message);
-          // 可选：显示错误消息
-          // ElMessage.error(`更新失败: ${response.data.message}`);
-        }
-      } catch (error) {
-        console.error('Failed to update role permission:', error);
-        // 可选：显示错误消息
-        // ElMessage.error('更新角色权限时发生错误');
-      }
-    };
-
-    // 全局项目配置部分方法
-    const editProject = (project) => {
-      project.isEditing = true;
-    };
-
-    const cancelEditProject = (project) => {
-      // 恢复原始值
-      project.projectName = project.original.projectName;
-      project.projectAmount = project.original.projectAmount;
-      project.isEditing = false;
-    };
-
-    const isProjectChanged = (project) => {
-      const original = project.original;
-      return (
-        original.projectName !== project.projectName ||
-        original.projectAmount !== project.projectAmount
-      );
-    };
-
-    const updateProject = async (project) => {
-      const payload = {
-        projectId: project.projectId,
-        projectName: project.projectName,
-        projectAmount: project.projectAmount,
-      };
-      try {
-        const response = await apiUpdateProject(payload);
-        if (response.data.success) {
-          // 更新原始数据
-          project.original.projectName = project.projectName;
-          project.original.projectAmount = project.projectAmount;
-          project.isEditing = false;
-          // 可选：显示成功消息
-          // ElMessage.success('项目更新成功');
-        } else {
-          // 处理失败，例如显示消息
-          console.error('Update project failed:', response.data.message);
-          // 可选：显示错误消息
-          // ElMessage.error(`更新失败: ${response.data.message}`);
+          ElMessage.error('更新失败: ' + response.data.message);
         }
       } catch (error) {
         console.error('Failed to update project:', error);
-        // 可选：显示错误消息
-        // ElMessage.error('更新项目时发生错误');
+        ElMessage.error('更新项目时发生错误');
       }
     };
 
-    // 地区项目配置部分方法，自动填充默认项目信息
-    const addRegion = () => {
-      const newRegionId = -Date.now(); // 使用负的时间戳作为临时的唯一 regionId
-      const newRows = projects.value.map((proj, index) => ({
-        regionId: newRegionId,
-        regionCode: '',
-        regionName: '',
-        currency: '',
-        isEditing: true,
-        projectId: proj.projectId,
-        projectName: proj.projectName,
-        projectAmount: proj.projectAmount,
-        original: {
-          regionCode: '',
-          regionName: '',
-          currency: '',
-          projectName: '',
-          projectAmount: '',
-        },
-        isFirst: index === 0,
-      }));
-      regions.value.push(...newRows);
+    // 地区和币种配置的方法
+    const editRegionCurrency = (row) => {
+      row.isEditing = true;
+      row.original = { ...row };
     };
 
-
-    // 取消编辑地区的方法
-    const cancelEditRegion = (row) => {
-      // 移除新添加的地区
-      if (row.regionId < 0) {
-        regions.value = regions.value.filter(r => r.regionId !== row.regionId);
-      } else {
-        // 恢复原始值
-        regions.value.forEach(r => {
-          if (r.regionId === row.regionId) {
-            r.regionCode = r.original.regionCode;
-            r.regionName = r.original.regionName;
-            r.currency = r.original.currency;
-            r.projectName = r.original.projectName;
-            r.projectAmount = r.original.projectAmount;
-            r.isEditing = false;
-          }
-        });
-      }
+    const cancelEditRegionCurrency = (row) => {
+      Object.assign(row, row.original);
+      row.isEditing = false;
     };
 
-    // 判断地区是否有更改
-    const isRegionChanged = (row) => {
-      const originalRows = originalRegions.value.filter(r => r.regionId === row.regionId);
-      const currentRows = regions.value.filter(r => r.regionId === row.regionId);
-
-      // 检查 originalRows 是否为空，如果为空，直接返回 true
-      if (originalRows.length === 0) {
-        return true; // 新添加的地区
-      }
-
-      for (let i = 0; i < currentRows.length; i++) {
-        const current = currentRows[i];
-        const original = originalRows[i];
-
-        if (
-          current.regionCode !== original.regionCode ||
-          current.regionName !== original.regionName ||
-          current.currency !== original.currency ||
-          current.projectName !== original.projectName ||
-          current.projectAmount !== original.projectAmount
-        ) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    // 更新地区的方法
-    const updateRegion = async (row) => {
-      const updatedRows = regions.value.filter(r => r.regionId === row.regionId);
-
+    const updateRegionCurrency = async (row) => {
       const payload = {
-        regionId: row.regionId > 0 ? row.regionId : null, // 新添加的地区 regionId 设为 null
         regionCode: row.regionCode,
         regionName: row.regionName,
-        currency: row.currency,
-        projects: updatedRows.map(r => ({
-          projectId: r.projectId,
-          projectName: r.projectName,
-          projectAmount: r.projectAmount,
-        })),
+        currencyName: row.currencyName,
+        currencyCode: row.currencyCode,
       };
-
       try {
-        const response = await apiUpdateRegion(payload);
-        if (response.data.success) {
-          // 如果是新添加的地区，需要更新 regionId，并更新原始数据
-          if (row.regionId < 0) {
-            const newRegionId = response.data.data.regionId;
-            regions.value = regions.value.map(r => {
-              if (r.regionId === row.regionId) {
-                return {
-                  ...r,
-                  regionId: newRegionId,
-                  original: {
-                    regionCode: r.regionCode,
-                    regionName: r.regionName,
-                    currency: r.currency,
-                    projectName: r.projectName,
-                    projectAmount: r.projectAmount,
-                  },
-                  isEditing: false,
-                };
-              }
-              return r;
-            });
-          } else {
-            // 更新原始数据
-            updatedRows.forEach(r => {
-              r.original.regionCode = r.regionCode;
-              r.original.regionName = r.regionName;
-              r.original.currency = r.currency;
-              r.original.projectName = r.projectName;
-              r.original.projectAmount = r.projectAmount;
-              r.isEditing = false;
-            });
-          }
-          ElMessage.success('地区更新成功');
+        const response = await updateRegionCurrency(payload);
+        if (response.data && response.data.success) {
+          row.original = { ...row };
+          row.isEditing = false;
+          ElMessage.success('地区和币种更新成功');
         } else {
-          console.error('Update region failed:', response.data.message);
-          ElMessage.error(`更新失败: ${response.data.message}`);
+          ElMessage.error('更新失败: ' + response.data.message);
         }
       } catch (error) {
-        console.error('Failed to update region:', error);
-        ElMessage.error('更新地区时发生错误');
+        console.error('Failed to update region currency:', error);
+        ElMessage.error('更新地区和币种时发生错误');
       }
-    };
-
-    // 编辑地区的方法
-    const editRegion = (row) => {
-      regions.value.forEach(r => {
-        if (r.regionId === row.regionId) {
-          r.isEditing = true;
-        }
-      });
-    };
-
-    // 合并单元格的方法
-    const regionSpanMethod = ({ row, column}) => {
-      if (['regionCode', 'regionName', 'currency', 'actions'].includes(column.property)) {
-        if (row.isFirst) {
-          const count = regions.value.filter(r => r.regionId === row.regionId).length;
-          return { rowspan: count, colspan: 1 };
-        } else {
-          return { rowspan: 0, colspan: 0 };
-        }
-      }
-      return { rowspan: 1, colspan: 1 };
-    };
-
-    // 删除地区的方法
-    const deleteRegion = (row) => {
-      ElMessageBox.confirm(
-        '您确定要删除这个地区及其所有项目吗？',
-        '提示',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning',
-        }
-      ).then(async () => {
-        try {
-          // 调用删除地区的 API
-          const response = await apiDeleteRegion({ regionId: row.regionId });
-          if (response.data.success) {
-            // 从 regions 中移除该地区
-            regions.value = regions.value.filter(r => r.regionId !== row.regionId);
-            ElMessage.success('地区已删除');
-          } else {
-            ElMessage.error(`删除失败: ${response.data.message}`);
-          }
-        } catch (error) {
-          console.error('Failed to delete region:', error);
-          ElMessage.error('删除地区时发生错误');
-        }
-      }).catch(() => {
-        // 用户取消删除
-      });
     };
 
     return {
-      t,
-      roles,
-      projects,
-      regions,
-      roleSpanMethod,
-      editRolePermission,
-      cancelEditRolePermission,
-      isRowChanged,
-      updateRolePermission,
+      addProjectRow,
+      addRegionProjectGroup,
+      addRegionProjectRow,
+      addRegionCurrencyRow,
+      saveNewProject,
+      cancelNewProject,
+      saveNewGroup,
+      cancelNewGroup,
+      saveNewRow,
+      cancelNewRow,
+      saveNewRegionCurrency,
+      cancelNewRegionCurrency,
+      projectDTOs,
+      regionCurrencyDTOs,
+      processedRegionProjects,
+      optionsForRegions,
+      optionsForProjects,
+      currencyOptions,
+      roleMap,
+      spanMethod,
+      isFirstRowInGroup,
+      isGroupRowEditing,
+      editRow,
+      cancelEditRow,
+      updateRow,
+      deleteRow,
+      editGroup,
+      cancelEditGroup,
+      updateGroup,
+      deleteGroup,
+      onRegionChange,
+      onCurrencyChange,
       editProject,
       cancelEditProject,
-      isProjectChanged,
       updateProject,
-      editRegion,
-      cancelEditRegion,
-      isRegionChanged,
-      updateRegion,
-      deleteRegion,
-      regionSpanMethod,
-      roleLevelMap,
-      addRegion
+      editRegionCurrency,
+      cancelEditRegionCurrency,
+      updateRegionCurrency,
     };
   },
 };
@@ -638,78 +1043,20 @@ export default {
 
 <style scoped>
 .config-container {
-  max-width: 1600px;
-  margin: 0 auto;
   padding: 20px;
-  /* 移除固定高度和垂直滚动，让 layout.vue 处理滚动 */
 }
 
 .config-card {
   margin-bottom: 30px;
   padding: 20px;
-  /* 增大内边距以改善布局 */
 }
 
 .section-title {
-  font-size: 24px;
-  margin-bottom: 20px;
-  font-weight: bold;
-}
-
-.el-table {
-  font-size: 16px; /* 增大字体 */
-}
-
-.editable-input {
-  font-size: 16px; /* 增大字体 */
-}
-
-.el-button {
-  margin-right: 5px;
-  font-size: 14px; /* 增大字体 */
-}
-
-.add-region-btn {
-  margin-top: 15px;
-}
-
-.table-header {
   font-size: 16px;
   font-weight: bold;
 }
 
-.el-table th, .el-table td {
-  text-align: center;
-  padding: 12px 8px; /* 增大内边距 */
-}
-
-.el-input, .el-switch {
-  width: 100%;
-}
-
-@media (max-width: 1200px) {
-  .config-container {
-    padding: 10px;
-  }
-
-  .config-card {
-    padding: 15px;
-  }
-
-  .section-title {
-    font-size: 20px;
-  }
-
-  .el-table {
-    font-size: 14px;
-  }
-
-  .editable-input {
-    font-size: 14px;
-  }
-
-  .el-button {
-    font-size: 13px;
-  }
+.el-table .el-button {
+  margin-right: 5px;
 }
 </style>

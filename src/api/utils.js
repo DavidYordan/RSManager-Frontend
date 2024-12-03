@@ -27,6 +27,24 @@ export function updateRolePermissions(data) {
     });
 }
 
+// updateProject
+export function updateProject(data) {
+    return request({
+      url: '/system/updateproject',
+      method: 'post',
+      data
+    });
+}
+
+// updateRegionCurrency
+export function updateRegionCurrency(data) {
+    return request({
+      url: '/system/updateregioncurrency',
+      method: 'post',
+      data
+    });
+}
+
 export function updateuserpermission(data) {
     return request({
       url: '/system/updateuserpermission',
@@ -43,17 +61,17 @@ export function deleteRegion(data) {
     });
 }
 
-export function updateRegion(data) {
+export function updateRegionProjects(data) {
     return request({
-      url: '/system/updateregion',
+      url: '/system/updateregionprojects',
       method: 'post',
       data
     });
 }
 
-export function updateProject(data) {
+export function deleteRegionProjects(data) {
     return request({
-      url: '/system/updateproject',
+      url: '/system/deleteregionprojects',
       method: 'post',
       data
     });

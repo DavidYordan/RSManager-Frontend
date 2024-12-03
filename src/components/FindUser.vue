@@ -72,6 +72,7 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { findUser as apiFindUser, updateUser } from '@/api/user'
+import { validatePlatformAccount } from '@/api/application'
 
 export default {
   name: 'FindUser',

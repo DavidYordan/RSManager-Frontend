@@ -54,6 +54,15 @@ export function exportCashOut(data) {
   });
 }
 
+// /paymentaccount/add
+export function addPaymentAccount(data) {
+  return request({
+    url: '/finance/paymentaccount/add',
+    method: 'post',
+    data
+  });
+}
+
 // /paymentaccount/update
 export function updatePaymentAccount(data) {
   return request({

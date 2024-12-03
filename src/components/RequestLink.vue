@@ -47,7 +47,7 @@
 <script>
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { findIdByPhoneFromTbuser } from '@/api/tbuser'
+import { validatePlatformAccount } from '@/api/application'
 import { checkTiktok } from '@/api/tiktok'
 import { submitForLink } from '@/api/application'
 
@@ -94,14 +94,14 @@ export default {
       isUsernameLoading.value = true
 
       try {
-        const response = await findIdByPhoneFromTbuser(form.value.username)
+        const response = await validatePlatformAccount({platformAccount: form.value.username})
         if (response.data.success && response.data.data.platformId) {
           userId.value = response.data.data.platformId
           isUsernameValidated.value = true
           ElMessage.success('用户名验证成功')
         } else {
           isUsernameValidated.value = false
-          ElMessage.error('用户名验证失败')
+          ElMessage.error('用户名验证失败:' + response.data.message)
         }
       } catch (error) {
         isUsernameValidated.value = false

@@ -88,6 +88,15 @@ export function finishedApplication(data) {
   });
 }
 
+// refund
+export function refundApplication(data) {
+  return request({
+    url: `/application/refund`,
+    method: 'post',
+    data
+  });
+}
+
 // 归档申请
 export function archiveApplication(data) {
   return request({
@@ -174,10 +183,28 @@ export function addPayment(formData) {
   });
 }
 
+// submitPaymentRecord
+export function submitPaymentRecord(data) {
+  return request({
+    url: `/application/payment/submit`,
+    method: 'post',
+    data
+  });
+}
+
 // approvePaymentRecord
 export function approvePaymentRecord(data) {
   return request({
     url: `/application/payment/approve`,
+    method: 'post',
+    data
+  });
+}
+
+// rejectPaymentRecord
+export function rejectPaymentRecord(data) {
+  return request({
+    url: `/application/payment/reject`,
     method: 'post',
     data
   });
@@ -296,19 +323,19 @@ export function saveUpgradeRoleEditing(data) {
   });
 }
 
-// submitaddroleupgrade
-export function submitAddRoleUpgrade(data) {
+// submitaddrole
+export function submitAddRole(data) {
   return request({
-    url: `/application/submitaddroleupgrade`,
+    url: `/application/submitaddrole`,
     method: 'post',
     data
   });
 }
 
-// submitupgraderoleupgrade
-export function submitUpgradeRoleUpgrade(data) {
+// submitupgraderole
+export function submitUpgradeRole(data) {
   return request({
-    url: `/application/submitupgraderoleupgrade`,
+    url: `/application/submitupgraderole`,
     method: 'post',
     data
   });
@@ -339,5 +366,12 @@ export function checkFullname(fullname) {
     method: 'post',
     data: { fullname }
   });
-
+}
+// validateplatformaccount
+export function validatePlatformAccount(data) {
+  return request({
+    url: `/application/validateplatformaccount`,
+    method: 'post',
+    data
+  });
 }

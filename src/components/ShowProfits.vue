@@ -118,7 +118,7 @@ const fieldLabels = {
   projectName: '项目名称',
   projectAmount: '项目金额',
   inviterFullname: '邀请人姓名',
-  inviterRoleId: '邀请人角色',
+  inviterRoleId: '分佣角色',
 }
 
 // 定义要显示的字段

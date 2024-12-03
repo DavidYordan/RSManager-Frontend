@@ -53,7 +53,7 @@
     </el-form>
 
     <!-- 财务表格 -->
-    <div class="table-container" style="width: 100%; margin-top: 20px;">
+    <div class="table-container" style="width: 100%;">
       <el-table
         :data="paymentAccountData"
         :default-sort="{ prop: 'accountId', order: 'ascending' }"
@@ -102,15 +102,29 @@
 
         <el-table-column prop="accountRegion" label="地区">
           <template #default="scope">
-            <div v-if="!scope.row.isEditing">{{ scope.row.accountRegion }}</div>
-            <el-input v-else v-model="scope.row.accountRegion"></el-input>
+            <div v-if="!scope.row.isEditing">{{ getRegionLabel(scope.row.accountRegion) }}</div>
+            <el-select v-else v-model="scope.row.accountRegion">
+              <el-option
+                v-for="option in regionNameOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              ></el-option>
+            </el-select>
           </template>
         </el-table-column>
 
         <el-table-column prop="accountCurrency" label="币种">
           <template #default="scope">
-            <div v-if="!scope.row.isEditing">{{ scope.row.accountCurrency }}</div>
-            <el-input v-else v-model="scope.row.accountCurrency"></el-input>
+            <div v-if="!scope.row.isEditing">{{ getCurrencyLabel(scope.row.accountCurrency) }}</div>
+            <el-select v-else v-model="scope.row.accountCurrency">
+              <el-option
+                v-for="option in currencyNameOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              ></el-option>
+            </el-select>
           </template>
         </el-table-column>
 
@@ -137,21 +151,31 @@
           fixed="right"
         >
           <template #default="scope">
-            <el-button v-if="!scope.row.isEditing" type="success" size="small" @click="editAccount(scope.row)">
-              编辑
+            <!-- 对于新添加的行 -->
+            <el-button v-if="scope.row.isNew" type="primary" size="small" @click="savePaymentAccount(scope.row)">
+              保存
             </el-button>
-            <el-button v-if="scope.row.isEditing" type="primary" size="small" @click="updatePaymentAccount(scope.row)">
-              更新
-            </el-button>
-            <el-button v-if="scope.row.isEditing" type="danger" size="small" @click="cancelEdit(scope.row)">
+            <el-button v-if="scope.row.isNew" type="danger" size="small" @click="cancelNewAccount(scope.row)">
               取消
             </el-button>
-            <el-button v-if="!scope.row.isEditing" type="danger" size="small" @click="deletePaymentAccount(scope.row)">
+            <!-- 对于正在编辑的行 -->
+            <el-button v-if="scope.row.isEditing && !scope.row.isNew" type="danger" size="small" @click="cancelEdit(scope.row)">
+              取消
+            </el-button>
+            <el-button v-if="scope.row.isEditing && !scope.row.isNew" type="primary" size="small" @click="updatePaymentAccount(scope.row)">
+              更新
+            </el-button>
+            <!-- 对于普通行 -->
+            <el-button v-if="!scope.row.isEditing && !scope.row.isNew" type="success" size="small" @click="editAccount(scope.row)">
+              编辑
+            </el-button>
+            <el-button v-if="!scope.row.isEditing && !scope.row.isNew" type="danger" size="small" @click="deletePaymentAccount(scope.row)">
               删除
             </el-button>
           </template>
         </el-table-column>
       </el-table>
+      <el-button type="success" @click="addPaymentAccount">新增</el-button>
     </div>
 
     <!-- 分页 -->
@@ -174,10 +198,12 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
+  addPaymentAccount as apiAddPaymentAccount,
   updatePaymentAccount as apiUpdatePaymentAccount,
   searchPaymentAccount as apiSearchPaymentAccount,
   deletePaymentAccount as apiDeletePaymentAccount
 } from '@/api/finance'
+import { fetchAllRegions as apifetchAllRegions } from '@/api/utils'
 
 export default {
   name: 'ViewPaymentAccount',
@@ -205,6 +231,72 @@ export default {
       accountCurrencyCode: '',
       accountComments: ''
     });
+
+    const getRegionLabel = (value) => {
+      const option = regionNameOptions.value.find(item => item.value === value);
+      return option ? option.label : value;
+    };
+
+    const getCurrencyLabel = (value) => {
+      const option = currencyNameOptions.value.find(item => item.value === value);
+      return option ? option.label : value;
+    };
+
+    const addPaymentAccount = () => {
+      const newAccount = {
+        accountId: '', // 新增时可留空或生成临时ID
+        accountName: '',
+        accountNumber: '',
+        accountType: '',
+        accountBank: '',
+        accountHolder: '',
+        accountRegion: '',
+        accountCurrency: '',
+        accountStatus: '1', // 默认在用
+        accountComments: '',
+        isEditing: true,
+        isNew: true
+      };
+      paymentAccountData.value.unshift(newAccount);
+    };
+
+    const savePaymentAccount = async (row) => {
+      // 验证必要字段
+      if (!row.accountName || !row.accountNumber) {
+        ElMessage.error("请填写必填字段");
+        return;
+      }
+      const payload = {
+        accountName: row.accountName,
+        accountNumber: row.accountNumber,
+        accountType: row.accountType,
+        accountRegion: row.accountRegion,
+        accountBank: row.accountBank,
+        accountHolder: row.accountHolder,
+        accountCurrency: row.accountCurrency,
+        accountCurrencyCode: row.accountCurrency,
+        accountStatus: row.accountStatus == '1' ? true : false,
+        accountComments: row.accountComments
+      };
+      try {
+        const response = await apiAddPaymentAccount(payload);
+        if (response.data.success) {
+          ElMessage.success("添加账户成功");
+          fetchPaymentAccounts();
+        } else {
+          ElMessage.error("添加账户失败");
+        }
+      } catch (error) {
+        ElMessage.error("添加账户失败");
+      }
+    };
+
+    const cancelNewAccount = (row) => {
+      const index = paymentAccountData.value.indexOf(row);
+      if (index > -1) {
+        paymentAccountData.value.splice(index, 1);
+      }
+    };
 
     const fetchPaymentAccounts = async () => {
       loading.value = true;
@@ -236,6 +328,42 @@ export default {
       }
     };
 
+    const regionNameOptions = ref([]);
+    const currencyNameOptions = ref([]);
+
+    const loadAllTypes = async () => {
+      try {
+        const response = await apifetchAllRegions()
+        if (response.data.success) {
+          const data = response.data.data
+          const regionNameSet = new Set()
+          const currencyNameSet = new Set()
+          data.forEach(item => {
+            regionNameSet.add(item.regionName)
+            currencyNameSet.add(item.currencyName)
+          })
+          regionNameOptions.value = Array.from(regionNameSet).map(item => {
+            return {
+              value: item,
+              label: item
+            }
+          })
+          currencyNameOptions.value = Array.from(currencyNameSet).map(item => {
+            return {
+              value: item,
+              label: item
+            }
+          })
+          console.log(regionNameOptions.value)
+          console.log(currencyNameOptions.value)
+        } else {
+          ElMessage.error("获取类型数据失败")
+        }
+      } catch (error) {
+        ElMessage.error("获取类型数据失败:" + error)
+      }
+    }
+
     const editAccount = (row) => {
       row.isEditing = true;
     };
@@ -259,6 +387,7 @@ export default {
           accountBank: row.accountBank,
           accountHolder: row.accountHolder,
           accountCurrency: row.accountCurrency,
+          accountCurrencyCode: row.accountCurrency,
           accountStatus: row.accountStatus == '1' ? true : false,
           accountComments: row.accountComments
         };
@@ -325,6 +454,7 @@ export default {
     };
 
     onMounted(() => {
+      loadAllTypes();
       fetchPaymentAccounts();
     });
 
@@ -339,12 +469,20 @@ export default {
       searchPaymentAccount,
       updatePaymentAccount,
       deletePaymentAccount,
+      addPaymentAccount,
+      savePaymentAccount,
+      cancelNewAccount,
       resetForm,
       handlePageChange,
       handleSizeChange,
       editAccount,
       cancelEdit,
-      statusMap
+      statusMap,
+      loadAllTypes,
+      getRegionLabel,
+      getCurrencyLabel,
+      regionNameOptions,
+      currencyNameOptions
     };
   }
 }

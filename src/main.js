@@ -4,15 +4,16 @@ import App from './App.vue';
 import router from './router';
 import { createPinia } from 'pinia';
 
-import ElementPlus from 'element-plus';
+import ElementPlus, { install } from 'element-plus';
+// import * as ElIcons from '@element-plus/icons-vue';
 import 'element-plus/dist/index.css';
+// import '@/assets/css/global.css';
 
 import i18n from './i18n';
 
 // 引入 tsParticles Vue 组件
 // import Particles from '@tsparticles/vue3';
 // import { loadSlim } from "@tsparticles/slim";
-
 
 
 // 导入 Element Plus 的语言包
@@ -22,8 +23,29 @@ import zhTWLocale from 'element-plus/es/locale/lang/zh-tw';
 
 const app = createApp(App);
 
+// 注册 Element Plus 的图标
+// for (const key in ElIcons) {
+//   app.component(key, ElIcons[key]);
+// }
+
 // 创建 Pinia 实例
 const pinia = createPinia();
+
+// let lastTrailTime = 0;
+// document.addEventListener('mousemove', (e) => {
+//   const now = Date.now();
+//   if (now - lastTrailTime < 50) return; // 限制 50ms 创建一次拖尾
+//   lastTrailTime = now;
+
+//   const trail = document.createElement('div');
+//   trail.className = 'mouse-trail';
+//   trail.style.left = `${e.clientX}px`;
+//   trail.style.top = `${e.clientY}px`;
+//   document.body.appendChild(trail);
+//   setTimeout(() => {
+//     trail.remove();
+//   }, 500);
+// });
 
 // 应用插件
 app.use(pinia);
@@ -57,3 +79,4 @@ app.use(ElementPlus, {
 import './permission.js';
 
 app.mount('#app');
+

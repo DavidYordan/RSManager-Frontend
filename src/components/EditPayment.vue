@@ -1,6 +1,5 @@
 <!-- src/components/EditPayment.vue -->
 <template>
-  <!-- 编辑支付记录对话框 -->
   <el-dialog
     title="修改支付记录"
     v-model="dialogVisible"
@@ -12,21 +11,14 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="区域" prop="regionName">
-            <el-select v-model="form.regionName" disabled placeholder="选择区域">
-              <el-option
-                v-for="option in regionOptions"
-                :key="option"
-                :label="option"
-                :value="option"
-              />
-            </el-select>
+            <el-input v-model="form.regionName" disabled />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="币种" prop="currency">
-            <el-select v-model="form.currency" placeholder="选择币种">
+          <el-form-item label="币种" prop="currencyName">
+            <el-select v-model="form.currencyName" placeholder="选择币种">
               <el-option
-                v-for="option in currencyOptions"
+                v-for="option in currencyNameOptions"
                 :key="option"
                 :label="option"
                 :value="option"
@@ -40,14 +32,7 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="项目名称" prop="projectName">
-            <el-select v-model="form.projectName" placeholder="选择项目名称">
-              <el-option
-                v-for="name in projectNameOptions"
-                :key="name"
-                :label="name"
-                :value="name"
-              />
-            </el-select>
+            <el-input v-model="form.projectName" placeholder="输入项目名称" disabled/>
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -61,24 +46,17 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="支付方式" prop="paymentMethod">
-            <el-select v-model="form.paymentMethod" placeholder="选择支付方式">
-              <el-option
-                v-for="option in paymentMethodOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </el-select>
+            <el-input v-model="form.paymentMethod" placeholder="输入支付方式" disabled/>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="支付时间" prop="paymentTime">
+          <el-form-item label="支付时间" prop="paymentDate">
             <el-date-picker
-              v-model="form.paymentTime"
+              v-model="form.paymentDate"
               type="date"
               placeholder="选择日期"
               style="width: 100%"
-            />
+            ></el-date-picker>
           </el-form-item>
         </el-col>
       </el-row>
@@ -87,23 +65,35 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="支付金额" prop="paymentAmount">
-            <el-input-number
-              v-model="form.paymentAmount"
-              :min="0"
-              style="width: 100%"
-            />
+            <el-input-number v-model="form.paymentAmount" :min="0" style="width: 100%" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="手续费" prop="fee">
-            <el-input-number
-              v-model="form.fee"
-              :min="0"
-              style="width: 100%"
-            />
+            <el-input-number v-model="form.fee" :min="0" style="width: 100%" />
           </el-form-item>
         </el-col>
       </el-row>
+
+      <el-row :gutter="20">
+        <el-col :span="24">
+          <el-form-item label="收款账户" prop="paymentAccount" required>
+            <el-select
+              v-model="form.paymentAccount"
+              :disabled="isSubmitting"
+              placeholder="选择收款账户"
+            >
+              <el-option
+                v-for="option in paymentAccountOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
 
       <!-- 第五行：备注 -->
       <el-form-item label="备注" prop="comments">
@@ -116,15 +106,15 @@
       </el-form-item>
 
       <!-- 第六行：上传文件模块 -->
-      <el-form-item label="上传文件">
-        <!-- 显示已存在的文件列表 -->
+      <el-form-item label="上传文件" prop="uploadFile">
         <el-upload
           class="upload-demo"
           drag
           action="#"
           list-type="picture-card"
           :file-list="fileList"
-          :before-remove="handleRemove"
+          :before-upload="beforeUpload"
+          :on-remove="handleRemove"
           :on-preview="handlePreview"
           :on-change="handleFileChange"
           :auto-upload="false"
@@ -133,6 +123,13 @@
         >
           <i class="el-icon-plus"></i>
         </el-upload>
+        <el-dialog v-model="previewVisible" width="50%">
+          <img
+            style="width: 100%"
+            :src="previewImage"
+            alt="Preview"
+          />
+        </el-dialog>
       </el-form-item>
     </el-form>
 
@@ -164,12 +161,13 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, computed, onUnmounted } from 'vue'
 import {
   updatePaymentRecord,
   downloadFile
 } from '@/api/application'
 import { fetchAllRegions } from '@/api/utils'
+import { searchPaymentAccount as apiSearchPaymentAccount } from '@/api/finance'
 import { ElMessage, ElLoading } from 'element-plus'
 
 // 接收外部传入的 props
@@ -189,21 +187,59 @@ const emit = defineEmits(['paymentEdited'])
 
 // 对话框可见性
 const dialogVisible = ref(false)
+const isSubmitting = ref(false)
+
+const getPaymentAccountId = () => {
+  if (!props.paymentData.paymentAccountStr) {
+    return null
+  }
+  const accountStr = props.paymentData.paymentAccountStr;
+  const delimiterIndex = accountStr.indexOf("|");
+  if (delimiterIndex === -1) {
+    return null;
+  }
+  return parseInt(accountStr.substring(0, delimiterIndex), 10);
+}
+
+const paymentAccountOptions = ref([])
+const paymentAccountMap = ref({})
+
+const fetchPaymentAccounts = async () => {
+  try {
+    const response = await apiSearchPaymentAccount({ accountStatus: true})
+    if (response.data.success) {
+      const data = response.data.data.content
+      paymentAccountOptions.value = data.map(account => ({
+        label: account.accountRegion + '-' + account.accountName + '-' + account.accountBank + '-' + account.accountNumber + '-' + account.accountComments,
+        value: account.accountId
+      }))
+      data.forEach(account => {
+        paymentAccountMap.value[account.accountId] = account
+      })
+      form.value.paymentAccount = getPaymentAccountId()
+    } else {
+      ElMessage.error("获取支付账户失败")
+    }
+  } catch (error) {
+    ElMessage.error("获取支付账户失败:" + error)
+  }
+}
 
 // 表单数据
 const form = ref({
   paymentId: props.paymentData.paymentId,
   processId: props.processId,
   regionName: props.paymentData.regionName,
-  currency: props.paymentData.currency,
+  currencyName: props.paymentData.currencyName,
   paymentMethod: props.paymentData.paymentMethod,
   paymentAmount: props.paymentData.paymentAmount,
   fee: props.paymentData.fee,
   actual: props.paymentData.actual,
-  paymentTime: new Date(props.paymentData.paymentTime),
+  paymentDate: new Date(props.paymentData.paymentDate),
   comments: props.paymentData.comments,
   projectName: props.paymentData.projectName || '',
   projectAmount: props.paymentData.projectAmount || 0,
+  paymentAccount: getPaymentAccountId(),
 })
 
 // 表单验证规则
@@ -216,7 +252,7 @@ const rules = {
     { required: true, message: '请输入手续费', trigger: 'blur' },
     { type: 'number', message: '手续费必须为数字', trigger: 'blur' },
   ],
-  paymentTime: [
+  paymentDate: [
     {
       type: 'date',
       required: true,
@@ -230,11 +266,9 @@ const rules = {
 const paymentForm = ref(null)
 
 // 定义数据结构
-const regions = ref([])
 const regionOptions = ref([])
-const currencyOptions = ref([])
 const projectMap = ref({})
-const projectNameOptions = ref([])
+const currencyNameOptions = ref([])
 const paymentMethodOptions = [
   { label: '全额支付', value: '全额支付' },
   { label: '分期付款', value: '分期付款' },
@@ -244,6 +278,8 @@ const paymentMethodOptions = [
 const imagePreviewVisible = ref(false)
 const imagePreviewUrl = ref('')
 const imageOriginalFileName = ref('')
+const previewVisible = ref(false)
+const previewImage = ref('')
 
 // 已存在的文件列表
 const fileList = ref([])
@@ -265,9 +301,15 @@ const loadAllTypes = async () => {
       const data = response.data.data
 
       // 处理地区数据
-      regions.value = data.map((region) => ({
+      regionOptions.value = data.map((region) => ({
         regionName: region.regionName,
-        currency: region.currency,
+        regionCode: region.regionCode,
+        roleId: region.roleId,
+        currencyName: region.currencyName,
+        currencyNameCode: region.currencyNameCode,
+        projectId: region.projectId,
+        projectName: region.projectName,
+        projectAmount: region.projectAmount
       }))
 
       // 提取所有地区选项
@@ -276,59 +318,57 @@ const loadAllTypes = async () => {
       ]
 
       // 提取所有货币选项
-      currencyOptions.value = [
-        ...new Set(data.map((region) => region.currency)),
+      currencyNameOptions.value = [
+        ...new Set(data.map((region) => region.currencyName)),
       ]
 
-      // 处理项目名称和金额映射
-      data.forEach((region) => {
-        region.regionProjectDTOs.forEach((project) => {
-          if (!projectMap.value[project.projectName]) {
-            projectMap.value[project.projectName] = {}
-          }
-          projectMap.value[project.projectName][region.currency] =
-            project.projectAmount
-        })
+      data.forEach(region => {
+        const uniqueId1 = region.regionName + region.currencyName + region.projectName
+        const uniqueId2 = region.currencyName + region.projectName
+        if (!projectMap[uniqueId1]) {
+          projectMap[uniqueId1] = {}
+          projectMap[uniqueId1]['projectName'] = region.projectName
+          projectMap[uniqueId1]['projectAmount'] = region.projectAmount
+        } else {
+            projectMap[uniqueId1]['projectName'] = region.projectName
+            projectMap[uniqueId1]['projectAmount'] = region.projectAmount
+        }
+        if (!projectMap[uniqueId2]) {
+          projectMap[uniqueId2] = {}
+          projectMap[uniqueId2]['projectName'] = region.projectName
+          projectMap[uniqueId2]['projectAmount'] = region.projectAmount
+        } else {
+            projectMap[uniqueId2]['projectName'] = region.projectName
+            projectMap[uniqueId2]['projectAmount'] = region.projectAmount
+        }
       })
-
-      // 提取唯一项目名称列表
-      const projectSet = new Set()
-      data.forEach((region) => {
-        region.regionProjectDTOs.forEach((project) => {
-          projectSet.add(project.projectName)
-        })
-      })
-
-      projectNameOptions.value = [...projectSet]
     } else {
       ElMessage.error('获取地区数据失败')
     }
   } catch (error) {
-    ElMessage.error('获取地区数据失败')
+    ElMessage.error('获取地区数据失败' + error)
   }
 }
 
-// 更新项目金额的方法
+// 监听货币变化，自动更新项目金额
+watch(() => form.value.currencyName, (newcurrencyName) => {
+  updateProjectAmount()
+})
+
+watch(() => form.value.projectName, (newProjectName) => {
+  updateProjectAmount()
+})
+
 const updateProjectAmount = () => {
-  const newCurrency = form.value.currency
-  const newProjectName = form.value.projectName
-  if (
-    newCurrency &&
-    newProjectName &&
-    projectMap.value[newProjectName] &&
-    projectMap.value[newProjectName][newCurrency]
-  ) {
-    form.value.projectAmount = projectMap.value[newProjectName][newCurrency]
+  const uniqueId1 = form.value.regionName + form.value.currencyName + form.value.projectName
+  const uniqueId2 = form.value.currencyName + form.value.projectName
+  if (projectMap[uniqueId1]) {
+    form.value.projectAmount = projectMap[uniqueId1].projectAmount
+  } else if (projectMap[uniqueId2]) {
+    form.value.projectAmount = projectMap[uniqueId2].projectAmount
   } else {
-    form.value.projectAmount = 0
   }
 }
-
-// 监听币种和项目名称的变化，更新项目金额
-watch(
-  () => [form.value.currency, form.value.projectName],
-  updateProjectAmount
-)
 
 // 加载已存在的文件
 const loadExistingFiles = async () => {
@@ -377,6 +417,7 @@ const loadExistingFiles = async () => {
 const openDialog = async () => {
   dialogVisible.value = true
   await loadAllTypes()
+  await fetchPaymentAccounts()
   updateProjectAmount()
 }
 
@@ -387,15 +428,16 @@ const resetForm = () => {
     paymentId: props.paymentData.paymentId,
     processId: props.processId,
     regionName: props.paymentData.regionName,
-    currency: props.paymentData.currency,
+    currencyName: props.paymentData.currencyName,
     paymentMethod: props.paymentData.paymentMethod,
     paymentAmount: props.paymentData.paymentAmount,
     fee: props.paymentData.fee,
     actual: props.paymentData.actual,
-    paymentTime: new Date(props.paymentData.paymentTime),
+    paymentDate: new Date(props.paymentData.paymentDate),
     comments: props.paymentData.comments,
     projectName: props.paymentData.projectName || '',
     projectAmount: props.paymentData.projectAmount || 0,
+    projectAccount: props.paymentData.projectAccount || '',
   }
   newFileList.value = []
   deleteFiles.value = []
@@ -411,15 +453,16 @@ watch(
         paymentId: newData.paymentId,
         processId: props.processId,
         regionName: newData.regionName,
-        currency: newData.currency,
+        currencyName: newData.currencyName,
         paymentMethod: newData.paymentMethod,
         paymentAmount: newData.paymentAmount,
         fee: newData.fee,
         actual: newData.actual,
-        paymentTime: new Date(newData.paymentTime),
+        paymentDate: new Date(newData.paymentDate),
         comments: newData.comments,
         projectName: newData.projectName || '',
         projectAmount: newData.projectAmount || 0,
+        projectAccount: newData.projectAccount || '',
       }
       await loadExistingFiles()
       newFileList.value = []
@@ -428,6 +471,17 @@ watch(
   },
   { immediate: true }
 )
+
+// 上传前处理
+const beforeUpload = (file) => {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error("只能上传图片文件")
+  } else {
+    form.value.uploadFile = file
+  }
+  return isImage
+}
 
 // 处理文件移除
 const handleRemove = (file, fileListRef) => {
@@ -517,14 +571,16 @@ const onSubmit = async () => {
         processId: form.value.processId,
         paymentId: form.value.paymentId,
         regionName: form.value.regionName,
-        currency: form.value.currency,
+        currencyName: form.value.currencyName,
         paymentMethod: form.value.paymentMethod,
         paymentAmount: form.value.paymentAmount,
-        paymentTime: formatDate(form.value.paymentTime),
+        fee: form.value.fee,
+        paymentDate: formatDate(form.value.paymentDate),
         comments: form.value.comments,
         deleteFiles: deleteFiles.value,
         projectName: form.value.projectName,
         projectAmount: form.value.projectAmount,
+        paymentAccountId: form.value.paymentAccount,
       }
 
       try {

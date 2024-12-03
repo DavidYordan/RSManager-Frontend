@@ -1,5 +1,8 @@
 .vscode/
 node_modules/
+assets/
+dist/
+public/
 vue.config.js
 *.env.*
 *.code-workspace

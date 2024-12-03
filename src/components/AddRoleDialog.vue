@@ -1,4 +1,4 @@
-<!-- src/views/UpgradeRole.vue -->
+<!-- src/views/AddRoleDialog.vue -->
 
 <template>
   <el-dialog
@@ -65,7 +65,7 @@
                   placeholder="请选择区域"
                 >
                   <el-option
-                    v-for="option in regions"
+                    v-for="option in regionOptions"
                     :key="option.regionName"
                     :label="option.regionName"
                     :value="option.regionName"
@@ -75,16 +75,16 @@
             </el-col>
             <el-col :span="12">
               <el-form-item
-                :label="t('enrollScholar.currency')"
-                prop="currency"
+                :label="t('enrollScholar.currencyName')"
+                prop="currencyName"
               >
                 <el-select
-                  v-model="form.currency"
+                  v-model="form.currencyName"
                   :placeholder="t('enrollScholar.selectCurrency')"
                   :disabled="isSubmitting"
                 >
                   <el-option
-                    v-for="option in currencyOptions"
+                    v-for="option in currencyNameOptions"
                     :key="option"
                     :label="option"
                     :value="option"
@@ -173,7 +173,6 @@
                 <el-select
                   v-model="form.paymentMethod"
                   :placeholder="t('enrollScholar.selectPaymentMethod')"
-                  :disabled="isSubmitting"
                 >
                   <el-option :label="t('enrollScholar.fullPayment')" :value="'全额支付'"></el-option>
                   <el-option :label="t('enrollScholar.installment')" :value="'分期付款'"></el-option>
@@ -236,7 +235,7 @@
 <script>
 import { ref, reactive, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { saveUpgradeRoleEditing } from '@/api/application' // 假设的保存 API
+import { saveAddRoleEditing } from '@/api/application' // 假设的保存 API
 import { fetchAllRegions as apifetchAllRegions } from '@/api/utils'
 import { ElMessage } from 'element-plus'
 
@@ -244,7 +243,7 @@ import { ElMessage } from 'element-plus'
 import { Check } from '@element-plus/icons-vue'
 
 export default {
-  name: 'UpgradeRole',
+  name: 'EditRole',
   components: {
     Check
   },
@@ -263,17 +262,19 @@ export default {
       fullname: '',
       roleId: null,
       regionName: '',
-      currency: '',
+      currencyName: '',
       projectName: '',
       projectAmount: '',
       rateA: '',
       rateB: '',
       startDate: '',
       paymentMethod: '',
-      comments: '升级角色'
+      comments: ''
     })
 
     const isDialogVisible = ref(false)
+
+    const actionStr = ref(null)
 
     // 是否正在提交
     const isSubmitting = ref(false)
@@ -326,7 +327,7 @@ export default {
       regionName: [
         { required: true, message: t('enrollScholar.PleaseSelectRegion'), trigger: 'change' }
       ],
-      currency: [
+      currencyName: [
         { required: true, message: t('enrollScholar.PleaseSelectCurrency'), trigger: 'change' }
       ]
     }
@@ -352,7 +353,7 @@ export default {
         fullname: form.fullname,
         roleId: form.roleId,
         regionName: form.regionName,
-        currency: form.currency,
+        currencyName: form.currencyName,
         projectName: form.projectName,
         projectAmount: form.projectAmount,
         rateA: form.rateA,
@@ -364,21 +365,17 @@ export default {
       }
 
       try {
-        const response = await saveUpgradeRoleEditing(saveData)
+        const response = await saveAddRoleEditing(saveData)
         if (response.data.success) { // 根据 ApiResponse 结构调整
           ElMessage.success("保存成功")
           canSaveApplication.value = false
-          emit('upgradeRoleEdited') // 发送回调给父组件
+          emit('roleEditAdded') // 发送回调给父组件
           handleClose() // 关闭对话框
-        } else {
-          ElMessage.error(response.data.message)
-        }
-      } catch (error) {
-        if (error.response && error.response.data) {
-          ElMessage.error(error.response.data.message)
         } else {
           ElMessage.error(t('enrollScholar.ApplicationSaveFailed'))
         }
+      } catch (error) {
+        ElMessage.error(t('enrollScholar.ApplicationSaveFailed'))
       } finally {
         isSubmitting.value = false
       }
@@ -406,11 +403,14 @@ export default {
     /**
      * 学员等级选项
      */
-    const roleIdOptions = ref([
-      { value: 4, label: t('enrollScholar.advanced') },
-      { value: 5, label: t('enrollScholar.intermediate') },
-      { value: 6, label: t('enrollScholar.beginner') },
-    ])
+    const roleIdOptions = computed(() => {
+      if (!props.applicationData) return []
+      return [
+        { value: 4, label: "高阶学员" },
+        { value: 5, label: "中阶学员" },
+        { value: 6, label: "初阶学员" },
+      ].filter(option => option.value > props.applicationData.roleId)
+    })
 
     /**
      * 计算 rateOptions 选择项
@@ -464,18 +464,9 @@ export default {
       }
     );
 
-    /**
-     * 项目名称映射
-     */
-    const projectNameMap = ref({})
-
-    // 地区数据
-    const regions = ref([])
-
-    // 货币选项
-    const currencyOptions = ref([])
-
-    // 项目名称和金额映射，根据 roleId
+    // 项目名称映射
+    const regionOptions  = ref([])
+    const currencyNameOptions = ref([])
     const projectMap = ref({})
 
     // 初始化表单数据
@@ -483,31 +474,62 @@ export default {
 
     // 监听学员等级变化，更新项目名称和金额
     watch(() => form.roleId, (newVal) => {
-      if (isInitializing.value) return;
-      const project = projectMap.value[newVal-3]
-      form.projectAmount = project ? project[form.currency] : ''
-      form.projectName = project ? projectNameMap.value[newVal-3] : ''
+      if (regionOptions.value.length === 0) return
+      calculateProjectName()
+      updateProjectInfo()
     })
+
+    // 计算projectName
+    const calculateProjectName = () => {
+      if (regionOptions.value.length === 0) return;
+      let regionOption = regionOptions.value.find(
+        region => region.roleId === form.roleId && region.regionName === form.regionName && region.currencyName === form.currencyName
+      );
+      if (regionOption) {
+        form.projectName = regionOption.projectName;
+      } else {
+        regionOption = regionOptions.value.find(
+          region => region.roleId === form.roleId && region.currencyName === form.currencyName
+        );
+        if (regionOption) {
+          form.projectName = regionOption.projectName;
+        }
+      }
+    }
 
     // 监听地区变化，自动填充货币
     watch(() => form.regionName, (newRegionName) => {
-      if (isInitializing.value) return;
-      const selectedRegion = regions.value.find(region => region.regionName === newRegionName)
-      if (selectedRegion) {
-        form.currency = selectedRegion.currency
+      if (regionOptions.value.length === 0) return;
+      const regionOption = regionOptions.value.find(region => region.regionName === newRegionName);
+      if (regionOption) {
+        form.currencyName = regionOption.currencyName;
+        updateProjectInfo();
       }
     })
 
     // 监听货币变化，自动更新项目金额
-    watch(() => form.currency, (newCurrency) => {
-      if (isInitializing.value) return;
-      const project = projectMap.value[form.roleId-3]
-      form.projectAmount = project ? project[newCurrency] : ''
+    watch(() => form.currencyName, (newCurrencyName) => {
+      if (regionOptions.value.length === 0) return
+      updateProjectInfo()
     })
 
-    /**
-     * 获取所有类型数据（地区和项目名称）
-     */
+    const updateProjectInfo = () => {
+      const uniqueId1 = form.regionName + form.currencyName + form.roleId + form.projectName;
+      const uniqueId2 = form.currencyName + form.roleId + form.projectName;
+      if (projectMap.value[uniqueId1]) {
+        form.projectName = projectMap.value[uniqueId1].projectName;
+        form.projectAmount = projectMap.value[uniqueId1].projectAmount;
+      } else if (projectMap.value[uniqueId2]) {
+        form.projectName = projectMap.value[uniqueId2].projectName;
+        form.projectAmount = projectMap.value[uniqueId2].projectAmount;
+      } else {
+        // 处理未找到匹配项的情况
+        form.projectName = '';
+        form.projectAmount = '';
+      }
+    }
+
+    // 获取所有类型数据（地区和项目名称）
     const loadAllTypes = async () => {
       try {
         const response = await apifetchAllRegions()
@@ -515,47 +537,46 @@ export default {
           const data = response.data.data
 
           // 处理地区数据
-          regions.value = data.map(region => ({
+          regionOptions.value = data.map(region => ({
             regionName: region.regionName,
-            currency: region.currency
+            regionCode: region.regionCode,
+            roleId: region.roleId,
+            currencyName: region.currencyName,
+            currencyCode: region.currencyCode,
+            projectId: region.projectId,
+            projectName: region.projectName,
+            projectAmount: region.projectAmount
           }))
 
           // 提取所有货币选项
-          currencyOptions.value = [
-            ...new Set(data.map(region => region.currency))
-          ]
+          currencyNameOptions.value = [...new Set(data.map(region => region.currencyName))]
 
           // 处理项目名称和金额映射
           data.forEach(region => {
-            region.regionProjectDTOs.forEach(project => {
-              if (!projectMap.value[project.projectId]) {
-                projectMap.value[project.projectId] = {}
+              const uniqueId1 = region.regionName + region.currencyName + region.roleId + region.projectName
+              const uniqueId2 = region.currencyName + region.roleId + region.projectName
+              if (!projectMap.value[uniqueId1]) {
+                projectMap.value[uniqueId1] = {}
+                projectMap.value[uniqueId1]['projectName'] = region.projectName
+                projectMap.value[uniqueId1]['projectAmount'] = region.projectAmount
+              } else {
+                  projectMap.value[uniqueId1]['projectName'] = region.projectName
+                  projectMap.value[uniqueId1]['projectAmount'] = region.projectAmount
               }
-              projectMap.value[project.projectId][region.currency] = project.projectAmount
-            })
+              if (!projectMap.value[uniqueId2]) {
+                projectMap.value[uniqueId2] = {}
+                projectMap.value[uniqueId2]['projectName'] = region.projectName
+                projectMap.value[uniqueId2]['projectAmount'] = region.projectAmount
+              } else {
+                  projectMap.value[uniqueId2]['projectName'] = region.projectName
+                  projectMap.value[uniqueId2]['projectAmount'] = region.projectAmount
+              }
           })
-
-          // 提取唯一项目
-          const projectSet = new Set()
-          data.forEach(region => {
-            region.regionProjectDTOs.forEach(project => {
-              projectSet.add(JSON.stringify({ projectId: project.projectId, projectName: project.projectName }))
-            })
-          })
-
-          // projectNameMap
-          projectSet.forEach(project => {
-            const projectObj = JSON.parse(project)
-            projectNameMap.value[projectObj.projectId] = projectObj.projectName})
-
-          // 初始化项目名称和金额
-          form.regionName = regions.value[0].regionName
-          form.roleId = 6
         } else {
-          ElMessage.error(t('enrollScholar.FetchTypesFailed'))
+          ElMessage.error("获取类型数据失败")
         }
       } catch (error) {
-        ElMessage.error(t('enrollScholar.FetchTypesFailed'))
+        ElMessage.error("获取类型数据失败:" + error)
       }
     }
 
@@ -564,52 +585,36 @@ export default {
      */
     const initializeForm = () => {
       isInitializing.value = true;
-      if (props.applicationData && Object.keys(props.applicationData).length > 0) {
-        if (props.applicationData.actionStr && props.applicationData.actionStr.includes('projectName')) {
-          const data = JSON.parse(props.applicationData.actionStr)
-          form.fullname = data.fullname
-          form.roleId = data.roleId
-          form.regionName = props.applicationData.regionName
-          form.currency = data.currency
-          form.projectName = data.projectName
-          form.projectAmount = data.projectAmount
-          form.rateA = data.rateA
-          form.rateB = data.rateB
-          form.startDate = data.startDate
-          form.paymentMethod = data.paymentMethod
-          form.comments = data.comments
-        } else {
-          form.fullname = props.applicationData.fullname
-          form.roleId = props.applicationData.roleId
-          form.regionName = props.applicationData.regionName
-          form.currency = props.applicationData.currency
-          form.projectName = props.applicationData.projectName
-          form.projectAmount = props.applicationData.projectAmount
-          form.rateA = props.applicationData.rateA
-          form.rateB = props.applicationData.rateB
-          form.startDate = new Date().toISOString().split('T')[0]
-          form.paymentMethod = props.applicationData.paymentMethod
-          form.comments = '升级角色'
-        }
-
+      if (props.applicationData) {
+        actionStr.value = JSON.parse(props.applicationData.actionStr)
+        console.log('action:', JSON.parse(props.applicationData.actionStr))
         processId.value = props.applicationData.processId
-
-        try {
-          oldStatus.value = JSON.parse(props.applicationData.actionStr).oldStatus
-        } catch (error) {
-          oldStatus.value = null
-        }
-
+        oldStatus.value = actionStr.value.oldStatus
+        form.roleId = actionStr.value.roleId
+        form.fullname = actionStr.value.fullname
+        form.regionName = props.applicationData.regionName
+        form.currencyName = actionStr.value.currencyName
+        form.projectName = actionStr.value.projectName
+        form.projectAmount = actionStr.value.projectAmount
+        form.rateA = actionStr.value.rateA
+        form.rateB = actionStr.value.rateB
+        form.startDate = actionStr.value.startDate
+        form.paymentMethod = actionStr.value.paymentMethod
+        form.comments = actionStr.value.comments
         // 根据 rateA 和 rateB 计算 rateOption
         if (form.roleId && rateOptions[form.roleId]) {
           const rateOptionKey = findRateOptionKey(form.roleId, form.rateA, form.rateB);
           if (rateOptionKey) {
             form.rateOption = rateOptionKey;
           } else {
-            form.rateOption = '';
+            form.rateOption = Object.keys(rateOptions[form.roleId])[0];
           }
         }
       }
+
+      calculateProjectName();
+      updateProjectInfo();
+
       nextTick(() => {
         isInitializing.value = false;
       });
@@ -629,9 +634,9 @@ export default {
     };
 
     // 监听 applicationData prop 的变化
-    watch(() => props.applicationData, () => {
-      initializeForm()
-    }, { immediate: true })
+    // watch(() => props.applicationData, () => {
+    //   initializeForm()
+    // }, { immediate: true })
 
     const openDialog = async() => {
       isDialogVisible.value = true;
@@ -650,12 +655,12 @@ export default {
       handleClose,
       isDialogVisible,
       canSaveApplication,
-      currencyOptions,
+      currencyNameOptions,
+      regionOptions,
       isSubmitting,
       enrollForm,
       roleIdOptions,
-      computedRateOptions,
-      regions
+      computedRateOptions
     }
   }
 }

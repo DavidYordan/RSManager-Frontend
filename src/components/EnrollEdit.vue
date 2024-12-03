@@ -139,7 +139,7 @@
                   :placeholder="t('enrollScholar.selectroleId')"
                 >
                   <el-option
-                    v-for="option in roleIdOptions"
+                    v-for="option in roleOptions"
                     :key="option.value"
                     :label="option.label"
                     :value="option.value"
@@ -162,26 +162,26 @@
                   :placeholder="t('enrollScholar.selectRegion')"
                 >
                   <el-option
-                    v-for="option in regions"
-                    :key="option.regionName"
-                    :label="option.regionName"
-                    :value="option.regionName"
-                  />
+                      v-for="option in regionOptions"
+                      :key="option.regionCode"
+                      :label="option.regionName"
+                      :value="option.regionName"
+                    />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item
-                :label="t('enrollScholar.currency')"
-                prop="currency"
+                :label="t('enrollScholar.currencyName')"
+                prop="currencyName"
               >
                 <el-select
-                  v-model="form.currency"
-                  :placeholder="t('enrollScholar.selectCurrency')"
+                  v-model="form.currencyName"
+                  placeholder="选择币种"
                   :disabled="isSubmitting"
                 >
                   <el-option
-                    v-for="option in currencyOptions"
+                    v-for="option in currencyNameOptions"
                     :key="option"
                     :label="option"
                     :value="option"
@@ -198,11 +198,18 @@
               :label="t('enrollScholar.projectName')"
               prop="projectName"
             >
-              <el-input
+              <el-select
                 v-model="form.projectName"
-                :placeholder="t('enrollScholar.projectNamePlaceholder')"
-                disabled
-              ></el-input>
+                :disabled="isSubmitting"
+                placeholder="选择项目"
+              >
+                <el-option
+                  v-for="option in projectOptions"
+                  :key="option.projectId"
+                  :label="option.projectName"
+                  :value="option.projectName"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -365,11 +372,12 @@ export default {
       managerFullname: '',
       roleId: null,
       regionName: '',
-      currency: '',
+      currencyName: '',
       projectName: '',
       projectAmount: '',
       rateA: '',
       rateB: '',
+      rateOption: '',
       startDate: '',
       paymentMethod: '',
       comments: ''
@@ -398,19 +406,6 @@ export default {
 
     // 表单引用
     const enrollForm = ref(null)
-
-    // 抽佣等级选项
-    const rateOptions = {
-      4: {
-        1: { rateA: "*0.95*0.5", rateB: "" },
-        2: { rateA: "*0.95*0.4", rateB: "*0.95*0.1" }
-      },
-      5: {
-        1: { rateA: "*0.95*0.3", rateB: "" },
-        2: { rateA: "*0.95*0.4", rateB: "" },
-        3: { rateA: "*0.95*0.5", rateB: "" }
-      },
-    }
 
     // 表单验证规则
     const rules = {
@@ -441,8 +436,8 @@ export default {
       regionName: [
         { required: true, message: t('enrollScholar.PleaseSelectRegion'), trigger: 'change' }
       ],
-      currency: [
-        { required: true, message: t('enrollScholar.PleaseSelectCurrency'), trigger: 'change' }
+      currencyName: [
+        { required: true, message: "选择币种", trigger: 'change' }
       ]
     }
 
@@ -531,7 +526,7 @@ export default {
         fullname: form.fullname,
         roleId: form.roleId,
         regionName: form.regionName,
-        currency: form.currency,
+        currencyName: form.currencyName,
         projectName: form.projectName,
         projectAmount: form.projectAmount,
         rateA: form.rateA,
@@ -581,19 +576,32 @@ export default {
       resetForm()
     }
 
+    // 抽佣等级选项
+    const rateOptions = {
+      4: {
+        1: { rateA: "*0.95*0.5", rateB: "" },
+        2: { rateA: "*0.95*0.4", rateB: "*0.95*0.1" }
+      },
+      5: {
+        1: { rateA: "*0.95*0.3", rateB: "" },
+        2: { rateA: "*0.95*0.4", rateB: "" },
+        3: { rateA: "*0.95*0.5", rateB: "" }
+      },
+    }
+
     /**
      * 学员等级选项
      */
-    const roleIdOptions = ref([
-      { value: 4, label: t('enrollScholar.advanced') },
-      { value: 5, label: t('enrollScholar.intermediate') },
-      { value: 6, label: t('enrollScholar.beginner') },
+     const roleOptions = ref([
+      { value: 4, label: "高阶学员" },
+      { value: 5, label: "中阶学员" },
+      { value: 6, label: "初阶学员" }
     ])
 
     /**
      * 计算 rateOptions 选择项
      */
-    const computedRateOptions = computed(() => {
+     const computedRateOptions = computed(() => {
       if (form.roleId === 6) return []
 
       if (!form.roleId || !rateOptions[form.roleId]) return []
@@ -602,6 +610,42 @@ export default {
         key: key,
         label: `${options[key].rateA}${options[key].rateB ? ' + ' + options[key].rateB : ''}`
       }))
+    })
+
+    /**
+     * 监听 roleId 变化，设置 rateA 和 rateB
+     */
+    watch(() => form.roleId, (newLevel) => {
+      if (newLevel === 6) {
+        form.rateA = ''
+        form.rateB = ''
+        form.rateOption = ''
+      } else if (rateOptions[newLevel]) {
+        const firstOptionKey = Object.keys(rateOptions[newLevel])[0]
+        form.rateOption = firstOptionKey
+        form.rateA = rateOptions[newLevel][firstOptionKey].rateA
+        form.rateB = rateOptions[newLevel][firstOptionKey].rateB
+      } else {
+        form.rateA = ''
+        form.rateB = ''
+      }
+    })
+
+    /**
+     * 监听 rateOption 变化，设置 rateA 和 rateB
+     */
+    watch(() => form.rateOption, (newOption) => {
+      if (form.roleId === 6) {
+        form.rateA = ''
+        form.rateB = ''
+        form.rateOption = ''
+      } else if (rateOptions[form.roleId] && rateOptions[form.roleId][newOption]) {
+        form.rateA = rateOptions[form.roleId][newOption].rateA
+        form.rateB = rateOptions[form.roleId][newOption].rateB
+      } else {
+        form.rateA = ''
+        form.rateB = ''
+      }
     })
 
     // 监听邀请人姓名的变化
@@ -628,137 +672,145 @@ export default {
       }
     })
 
-    /**
-     * 监听 roleId 和 rateOption 变化，设置 rateA 和 rateB
-     */
-     watch(
-      [() => form.roleId, () => form.rateOption],
-      ([newLevel, newOption], [oldLevel, oldOption]) => {
-        if (isInitializing.value) return;
-        if (newLevel === 6) {
-          form.rateA = '';
-          form.rateB = '';
-          form.rateOption = '';
-        } else if (newLevel !== oldLevel && rateOptions[newLevel]) {
-          // 如果已有 rateOption，且在新的 roleId 下有效，则保持不变
-          if (form.rateOption && rateOptions[newLevel][form.rateOption]) {
-            form.rateA = rateOptions[newLevel][form.rateOption].rateA;
-            form.rateB = rateOptions[newLevel][form.rateOption].rateB;
-          } else {
-            // 否则，设置为第一个选项
-            const firstOptionKey = Object.keys(rateOptions[newLevel])[0];
-            form.rateOption = firstOptionKey;
-            form.rateA = rateOptions[newLevel][firstOptionKey].rateA;
-            form.rateB = rateOptions[newLevel][firstOptionKey].rateB;
-          }
-        } else if (
-          newOption &&
-          rateOptions[newLevel] &&
-          rateOptions[newLevel][newOption]
-        ) {
-          // 保持当前 rateOption 的选择
-          form.rateA = rateOptions[newLevel][newOption].rateA;
-          form.rateB = rateOptions[newLevel][newOption].rateB;
-        } else {
-          form.rateA = '';
-          form.rateB = '';
-        }
-      }
-    );
 
-    /**
-     * 项目名称映射
-     */
-    const projectNameMap = ref({})
+    // 初始化表单数据
+    const isInitializing = ref(false);
 
     // 地区数据
-    const regions = ref([])
+    const regionOptions = ref([])
 
     // 货币选项
-    const currencyOptions = ref([])
+    const currencyNameOptions = ref([])
 
     // 项目名称和金额映射，根据 roleId
     const projectMap = ref({})
 
-    // 初始化表单数据
-    const initialForm = ref({})
-    const isInitializing = ref(false);
+    const projectOptions = computed(() => {
+      const uniqueId1 = form.regionName + form.currencyName + form.roleId
+      const uniqueId2 = form.currencyName + form.roleId
+
+      let projects = []
+
+      if (projectMap.value[uniqueId1]) {
+        projects = Object.values(projectMap.value[uniqueId1])
+      } else if (projectMap.value[uniqueId2]) {
+        projects = Object.values(projectMap.value[uniqueId2])
+      }
+
+      return projects.map(project => ({
+        projectId: project.projectId,
+        projectName: project.projectName,
+        projectAmount: project.projectAmount
+      }))
+    })
 
     // 监听学员等级变化，更新项目名称和金额
     watch(() => form.roleId, (newVal) => {
-      if (isInitializing.value) return;
-      const project = projectMap.value[newVal-3]
-      form.projectAmount = project ? project[form.currency] : ''
-      form.projectName = project ? projectNameMap.value[newVal-3] : ''
+      let region = regionOptions.value.find(region => region.roleId === form.roleId && region.regionName === form.regionName && region.currencyName === form.currencyName)
+      if (region) {
+        form.projectName = region.projectName
+      } else {
+        region = regionOptions.value.find(region => region.roleId === form.roleId && region.currencyName === form.currencyName)
+        if (region) {
+          form.projectName = region.projectName
+        } else {
+          form.projectName = ''
+        }
+      }
+      updateProjectInfo()
     })
 
     // 监听地区变化，自动填充货币
     watch(() => form.regionName, (newRegionName) => {
-      if (isInitializing.value) return;
-      const selectedRegion = regions.value.find(region => region.regionName === newRegionName)
-      if (selectedRegion) {
-        form.currency = selectedRegion.currency
+      const region = regionOptions.value.find(region => region.regionName === newRegionName)
+      if (region) {
+        form.currencyName = region.currencyName
       }
+      updateProjectInfo()
     })
 
     // 监听货币变化，自动更新项目金额
-    watch(() => form.currency, (newCurrency) => {
-      if (isInitializing.value) return;
-      const project = projectMap.value[form.roleId-3]
-      form.projectAmount = project ? project[newCurrency] : ''
+    watch(() => form.currencyName, (newCurrencyName) => {
+      updateProjectInfo()
     })
+
+    // 监听项目变化，自动更新项目金额
+    watch(() => form.projectName, (newProjectName) => {
+      const project = projectOptions.value.find(project => project.projectName === newProjectName)
+      if (project) {
+        form.projectAmount = project.projectAmount
+      } else {
+        form.projectAmount = ''
+      }
+    })
+
+    const updateProjectInfo = () => {
+      const uniqueId1 = form.regionName + form.currencyName + form.roleId
+      const uniqueId2 = form.currencyName + form.roleId
+      if (projectMap.value[uniqueId1]) {
+        // 取出第一个
+        form.projectName = projectMap.value[uniqueId1][Object.keys(projectMap.value[uniqueId1])[0]].projectName
+      } else if (projectMap.value[uniqueId2]) {
+        form.projectName = projectMap.value[uniqueId2][Object.keys(projectMap.value[uniqueId2])[0]].projectName
+      } else {
+        form.projectAmount = ''
+      }
+    }
 
     /**
      * 获取所有类型数据（地区和项目名称）
      */
-    const loadAllTypes = async () => {
+     const loadAllTypes = async () => {
       try {
         const response = await apifetchAllRegions()
         if (response.data.success) {
           const data = response.data.data
 
           // 处理地区数据
-          regions.value = data.map(region => ({
+          regionOptions.value = data.map(region => ({
             regionName: region.regionName,
-            currency: region.currency
+            regionCode: region.regionCode,
+            roleId: region.roleId,
+            currencyName: region.currencyName,
+            currencyCode: region.currencyCode,
+            projectId: region.projectId,
+            projectName: region.projectName,
+            projectAmount: region.projectAmount
           }))
 
           // 提取所有货币选项
-          currencyOptions.value = [
-            ...new Set(data.map(region => region.currency))
-          ]
+          currencyNameOptions.value = [...new Set(data.map(region => region.currencyName))]
 
           // 处理项目名称和金额映射
           data.forEach(region => {
-            region.regionProjectDTOs.forEach(project => {
-              if (!projectMap.value[project.projectId]) {
-                projectMap.value[project.projectId] = {}
+              const uniqueId1 = region.regionName + region.currencyName + region.roleId
+              const uniqueId2 = region.currencyName + region.roleId
+              if (!projectMap.value[uniqueId1]) {
+                projectMap.value[uniqueId1] = {}
               }
-              projectMap.value[project.projectId][region.currency] = project.projectAmount
-            })
+              // 将项目添加到 uniqueId1 下
+              projectMap.value[uniqueId1][region.projectId] = {
+                projectId: region.projectId,
+                projectName: region.projectName,
+                projectAmount: region.projectAmount
+              }
+
+              // 初始化 uniqueId2 下的项目列表
+              if (!projectMap.value[uniqueId2]) {
+                projectMap.value[uniqueId2] = {}
+              }
+              // 将项目添加到 uniqueId2 下
+              projectMap.value[uniqueId2][region.projectId] = {
+                projectId: region.projectId,
+                projectName: region.projectName,
+                projectAmount: region.projectAmount
+              }
           })
-
-          // 提取唯一项目
-          const projectSet = new Set()
-          data.forEach(region => {
-            region.regionProjectDTOs.forEach(project => {
-              projectSet.add(JSON.stringify({ projectId: project.projectId, projectName: project.projectName }))
-            })
-          })
-
-          // projectNameMap
-          projectSet.forEach(project => {
-            const projectObj = JSON.parse(project)
-            projectNameMap.value[projectObj.projectId] = projectObj.projectName})
-
-          // 初始化项目名称和金额
-          form.regionName = regions.value[0].regionName
-          form.roleId = 6
         } else {
-          ElMessage.error(t('enrollScholar.FetchTypesFailed'))
+          ElMessage.error("获取类型数据失败")
         }
       } catch (error) {
-        ElMessage.error(t('enrollScholar.FetchTypesFailed'))
+        ElMessage.error("获取类型数据失败:" + error)
       }
     }
 
@@ -767,31 +819,41 @@ export default {
      */
     const initializeForm = () => {
       isInitializing.value = true;
-      if (props.applicationData && Object.keys(props.applicationData).length > 0) {
-        Object.assign(form, { ...props.applicationData })
-        // 确保 startDate 的格式为 'YYYY-MM-DD'
-        form.startDate = props.applicationData.startDate
-          ? props.applicationData.startDate.substring(0, 10)
-          : '';
-        initialForm.value = { ...props.applicationData }
+      if (props.applicationData) {
         processId.value = props.applicationData.processId
-
+        form.roleId = props.applicationData.roleId
+        form.fullname = props.applicationData.fullname
+        form.inviterName = props.applicationData.inviterName
+        form.managerName = props.applicationData.managerName
+        form.regionName = props.applicationData.regionName
+        form.currencyName = props.applicationData.currencyName
+        form.projectName = props.applicationData.projectName
+        form.projectAmount = props.applicationData.projectAmount
+        form.rateA = props.applicationData.rateA
+        form.rateB = props.applicationData.rateB
+        form.startDate = props.applicationData.startDate
+        form.paymentMethod = props.applicationData.paymentMethod
+        form.comments = props.applicationData.comments
         // 根据 rateA 和 rateB 计算 rateOption
         if (form.roleId && rateOptions[form.roleId]) {
           const rateOptionKey = findRateOptionKey(form.roleId, form.rateA, form.rateB);
           if (rateOptionKey) {
             form.rateOption = rateOptionKey;
           } else {
-            form.rateOption = '';
+            form.rateOption = Object.keys(rateOptions[form.roleId])[0];
           }
         }
       }
+
+      updateProjectInfo();
+
       nextTick(() => {
         isInitializing.value = false;
       });
     }
 
     const findRateOptionKey = (roleId, rateA, rateB) => {
+      if (roleId === 6) return null;
       const options = rateOptions[roleId];
       for (const key in options) {
         if (
@@ -830,16 +892,17 @@ export default {
       isInviterValidated,
       isManagerValidated,
       canSaveApplication,
-      currencyOptions,
+      currencyNameOptions,
       inviterNameError,
       managerNameError,
       isSubmitting,
       enrollForm,
-      roleIdOptions,
+      roleOptions,
       computedRateOptions,
-      regions,
+      projectOptions,
+      regionOptions,
       isInviterLoading,
-      isManagerLoading
+      isManagerLoading,
     }
   }
 }

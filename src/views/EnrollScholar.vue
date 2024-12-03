@@ -184,52 +184,7 @@
               </el-col>
             </el-row>
 
-            <!-- 第五行：项目名称和项目金额 -->
             <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item
-                  :label="$t('enrollScholar.projectName')"
-                  prop="projectName"
-                >
-                  <el-input
-                    v-model="form.projectName"
-                    :placeholder="$t('enrollScholar.projectNamePlaceholder')"
-                    disabled
-                  ></el-input>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item
-                  :label="$t('enrollScholar.projectAmount')"
-                  prop="projectAmount"
-                >
-                  <el-input
-                    v-model="form.projectAmount"
-                    :placeholder="$t('enrollScholar.projectAmountPlaceholder')"
-                    disabled
-                  ></el-input>
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <!-- 第六行：付款方式和学员等级 -->
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item
-                  :label="$t('enrollScholar.paymentMethod')"
-                  prop="paymentMethod"
-                  required
-                >
-                  <el-select
-                    v-model="form.paymentMethod"
-                    :placeholder="$t('enrollScholar.selectPaymentMethod')"
-                    :disabled="isSubmitting"
-                  >
-                    <el-option :label="$t('enrollScholar.fullPayment')" :value="'全额支付'"></el-option>
-                    <el-option :label="$t('enrollScholar.installment')" :value="'分期付款'"></el-option>
-                  </el-select>
-                </el-form-item>
-              </el-col>
               <el-col :span="12">
                 <el-form-item
                   :label="$t('enrollScholar.roleId')"
@@ -249,42 +204,6 @@
                   </el-select>
                 </el-form-item>
               </el-col>
-            </el-row>
-
-            <!-- 第七行：付款方式和付款金额 -->
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item
-                  :label="$t('enrollScholar.paymentAmount')"
-                  prop="paymentAmount"
-                  required
-                >
-                  <el-input
-                    type="number"
-                    v-model="form.paymentAmount"
-                    :placeholder="$t('enrollScholar.enterPaymentAmount')"
-                    :disabled="isSubmitting"
-                  ></el-input>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item
-                  :label="$t('enrollScholar.fee')"
-                  prop="fee"
-                  required
-                >
-                  <el-input
-                    type="number"
-                    v-model="form.fee"
-                    :placeholder="$t('enrollScholar.enterFee')"
-                    :disabled="isSubmitting"
-                  ></el-input>
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <!-- 第八行：比率和付款时间 -->
-            <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item
                   :label="$t('enrollScholar.rateOptions')"
@@ -302,6 +221,93 @@
                       :value="option.key"
                     />
                   </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <!-- 第五行：项目名称和项目金额 -->
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item
+                  :label="$t('enrollScholar.projectName')"
+                  prop="projectName"
+                >
+                <el-select
+                  v-model="form.projectName"
+                  :disabled="isSubmitting"
+                  placeholder="选择项目"
+                >
+                  <el-option
+                    v-for="option in projectOptions"
+                    :key="option.projectId"
+                    :label="option.projectName"
+                    :value="option.projectName"
+                  />
+                </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="$t('enrollScholar.projectAmount')"
+                  prop="projectAmount"
+                >
+                  <el-input
+                    v-model="form.projectAmount"
+                    :placeholder="$t('enrollScholar.projectAmountPlaceholder')"
+                    disabled
+                  ></el-input>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <!-- 第六行：付款方式和付款金额 -->
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item
+                  :label="$t('enrollScholar.paymentMethod')"
+                  prop="paymentMethod"
+                  required
+                >
+                  <el-select
+                    v-model="form.paymentMethod"
+                    :placeholder="$t('enrollScholar.selectPaymentMethod')"
+                    :disabled="isSubmitting"
+                  >
+                    <el-option :label="$t('enrollScholar.fullPayment')" :value="'全额支付'"></el-option>
+                    <el-option :label="$t('enrollScholar.installment')" :value="'分期付款'"></el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="$t('enrollScholar.paymentAmount')"
+                  prop="paymentAmount"
+                  required
+                >
+                  <el-input
+                    type="number"
+                    v-model="form.paymentAmount"
+                    :placeholder="$t('enrollScholar.enterPaymentAmount')"
+                    :disabled="isSubmitting"
+                  ></el-input>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <!-- 第七行：付款方式和付款金额 -->
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item
+                  :label="$t('enrollScholar.fee')"
+                  prop="fee"
+                  required
+                >
+                  <el-input
+                    type="number"
+                    v-model="form.fee"
+                    :placeholder="$t('enrollScholar.enterFee')"
+                    :disabled="isSubmitting"
+                  ></el-input>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -474,6 +480,7 @@ export default {
       rateB: '',
       paymentMethod: '全额支付',
       paymentAmount: '',
+      paymentAccount: '',
       fee: '',
       paymentTime: null,
       inviterName: '',
@@ -958,23 +965,35 @@ export default {
     })
 
     /**
-     * 监听 roleId 和 rateOption 变化，设置 rateA 和 rateB
+     * 监听 roleId 变化，设置 rateA 和 rateB
      */
-    watch([() => form.roleId, () => form.rateOption], ([newLevel, newOption], [oldLevel, oldOption]) => {
+    watch(() => form.roleId, (newLevel) => {
       if (newLevel === 6) {
         form.rateA = ''
         form.rateB = ''
         form.rateOption = ''
-      } else if (newLevel !== oldLevel && rateOptions[newLevel]) {
-        // 仅在 roleId 变化时设置为第一个选项
+      } else if (rateOptions[newLevel]) {
         const firstOptionKey = Object.keys(rateOptions[newLevel])[0]
         form.rateOption = firstOptionKey
         form.rateA = rateOptions[newLevel][firstOptionKey].rateA
         form.rateB = rateOptions[newLevel][firstOptionKey].rateB
-      } else if (newOption && rateOptions[newLevel] && rateOptions[newLevel][newOption]) {
-        // 保持当前 rateOption 的选择
-        form.rateA = rateOptions[newLevel][newOption].rateA
-        form.rateB = rateOptions[newLevel][newOption].rateB
+      } else {
+        form.rateA = ''
+        form.rateB = ''
+      }
+    })
+
+    /**
+     * 监听 rateOption 变化，设置 rateA 和 rateB
+     */
+    watch(() => form.rateOption, (newOption) => {
+      if (form.roleId === 6) {
+        form.rateA = ''
+        form.rateB = ''
+        form.rateOption = ''
+      } else if (rateOptions[form.roleId] && rateOptions[form.roleId][newOption]) {
+        form.rateA = rateOptions[form.roleId][newOption].rateA
+        form.rateB = rateOptions[form.roleId][newOption].rateB
       } else {
         form.rateA = ''
         form.rateB = ''
@@ -990,39 +1009,75 @@ export default {
     // 项目名称和金额映射，根据 roleId
     const projectMap = ref({})
 
+    const projectOptions = computed(() => {
+      const uniqueId1 = form.regionName + form.currencyName + form.roleId
+      const uniqueId2 = form.currencyName + form.roleId
+
+      let projects = []
+
+      if (projectMap.value[uniqueId1]) {
+        projects = Object.values(projectMap.value[uniqueId1])
+      } else if (projectMap.value[uniqueId2]) {
+        projects = Object.values(projectMap.value[uniqueId2])
+      }
+
+      return projects.map(project => ({
+        projectId: project.projectId,
+        projectName: project.projectName,
+        projectAmount: project.projectAmount
+      }))
+    })
+
     // 监听学员等级变化，更新项目名称和金额
     watch(() => form.roleId, (newVal) => {
-        const region = regionOptions.value.find(region => region.roleId === form.roleId && region.regionName === form.regionName && region.currencyName === form.currencyName)
+      let region = regionOptions.value.find(region => region.roleId === form.roleId && region.regionName === form.regionName && region.currencyName === form.currencyName)
+      if (region) {
+        form.projectName = region.projectName
+      } else {
+        region = regionOptions.value.find(region => region.roleId === form.roleId && region.currencyName === form.currencyName)
         if (region) {
           form.projectName = region.projectName
         } else {
-          const region = regionOptions.value.find(region => region.roleId === form.roleId && region.currencyName === form.currencyName)
-          form.projectName = region.projectName
+          form.projectName = ''
         }
-        updateProjectInfo()
+      }
+      updateProjectInfo()
     })
 
     // 监听地区变化，自动填充货币
     watch(() => form.regionName, (newRegionName) => {
-        const region = regionOptions.value.find(region => region.regionName === newRegionName)
+      const region = regionOptions.value.find(region => region.regionName === newRegionName)
+      if (region) {
         form.currencyName = region.currencyName
-        updateProjectInfo()
+      }
+      updateProjectInfo()
     })
 
     // 监听货币变化，自动更新项目金额
     watch(() => form.currencyName, (newCurrencyName) => {
-        updateProjectInfo()
+      updateProjectInfo()
+    })
+
+    // 监听项目变化，自动更新项目金额
+    watch(() => form.projectName, (newProjectName) => {
+      const project = projectOptions.value.find(project => project.projectName === newProjectName)
+      if (project) {
+        form.projectAmount = project.projectAmount
+      } else {
+        form.projectAmount = ''
+      }
     })
 
     const updateProjectInfo = () => {
-      const uniqueId1 = form.regionName + form.currencyName + form.roleId + form.projectName
-      const uniqueId2 = form.currencyName + form.roleId + form.projectName
-      if (projectMap[uniqueId1]) {
-        form.projectName = projectMap[uniqueId1].projectName
-        form.projectAmount = projectMap[uniqueId1].projectAmount
-      } else if (projectMap[uniqueId2]) {
-        form.projectName = projectMap[uniqueId2].projectName
-        form.projectAmount = projectMap[uniqueId2].projectAmount
+      const uniqueId1 = form.regionName + form.currencyName + form.roleId
+      const uniqueId2 = form.currencyName + form.roleId
+      if (projectMap.value[uniqueId1]) {
+        // 取出第一个
+        form.projectName = projectMap.value[uniqueId1][Object.keys(projectMap.value[uniqueId1])[0]].projectName
+      } else if (projectMap.value[uniqueId2]) {
+        form.projectName = projectMap.value[uniqueId2][Object.keys(projectMap.value[uniqueId2])[0]].projectName
+      } else {
+        form.projectAmount = ''
       }
     }
 
@@ -1052,29 +1107,29 @@ export default {
 
           // 处理项目名称和金额映射
           data.forEach(region => {
-              const uniqueId1 = region.regionName + region.currencyName + region.roleId + region.projectName
-              const uniqueId2 = region.currencyName + region.roleId + region.projectName
-              if (!projectMap[uniqueId1]) {
-                projectMap[uniqueId1] = {}
-                projectMap[uniqueId1]['projectName'] = region.projectName
-                projectMap[uniqueId1]['projectAmount'] = region.projectAmount
-              } else {
-                  projectMap[uniqueId1]['projectName'] = region.projectName
-                  projectMap[uniqueId1]['projectAmount'] = region.projectAmount
+              const uniqueId1 = region.regionName + region.currencyName + region.roleId
+              const uniqueId2 = region.currencyName + region.roleId
+              if (!projectMap.value[uniqueId1]) {
+                projectMap.value[uniqueId1] = {}
               }
-              if (!projectMap[uniqueId2]) {
-                projectMap[uniqueId2] = {}
-                projectMap[uniqueId2]['projectName'] = region.projectName
-                projectMap[uniqueId2]['projectAmount'] = region.projectAmount
-              } else {
-                  projectMap[uniqueId2]['projectName'] = region.projectName
-                  projectMap[uniqueId2]['projectAmount'] = region.projectAmount
+              // 将项目添加到 uniqueId1 下
+              projectMap.value[uniqueId1][region.projectId] = {
+                projectId: region.projectId,
+                projectName: region.projectName,
+                projectAmount: region.projectAmount
+              }
+
+              // 初始化 uniqueId2 下的项目列表
+              if (!projectMap.value[uniqueId2]) {
+                projectMap.value[uniqueId2] = {}
+              }
+              // 将项目添加到 uniqueId2 下
+              projectMap.value[uniqueId2][region.projectId] = {
+                projectId: region.projectId,
+                projectName: region.projectName,
+                projectAmount: region.projectAmount
               }
           })
-
-          // 初始化默认选项
-          form.regionName = "美国"
-          form.roleId = 6
         } else {
           ElMessage.error("获取类型数据失败")
         }
@@ -1149,7 +1204,9 @@ export default {
       fileError,
       regionOptions,
       roleOptions,
-      computedRateOptions
+      computedRateOptions,
+      projectOptions,
+      paymentAccountMap
     }
   }
 }

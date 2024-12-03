@@ -23,8 +23,10 @@ body, html, #app {
   padding: 0;
   height: 100%;
   width: 100%;
-  /* overflow: hidden; */ /* 移除这行 */
   overflow: auto;
   background: linear-gradient(135deg, #e0e0e0, #ffffff);
 }
+/* 引入'@/assets/css/global.css'; */
+
+
 </style>
