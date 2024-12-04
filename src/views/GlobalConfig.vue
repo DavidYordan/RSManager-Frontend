@@ -21,7 +21,7 @@
           label="地区"
         >
           <template #default="{ row }">
-            <template v-if="row.isPEditing && isFirstRowInGroup(row)">
+            <template v-if="row.isAddingGroup && isFirstRowInGroup(row)">
               <el-select
                 v-model="row.regionName"
                 placeholder="选择地区"
@@ -47,7 +47,7 @@
           label="币种"
         >
           <template #default="{ row }">
-            <template v-if="row.isPEditing && isFirstRowInGroup(row)">
+            <template v-if="row.isAddingGroup && isFirstRowInGroup(row)">
               <el-select
                 v-model="row.currencyName"
                 placeholder="选择币种"
@@ -117,6 +117,16 @@
           </template>
         </el-table-column>
 
+        <!-- 换汇参考金额 -->
+        <el-table-column
+          prop="exchangeAmount"
+          label="换汇($)"
+        >
+          <template #default="{ row }">
+            {{ exchangeAmount(row.projectAmount, row.currencyCode) }}
+          </template>
+        </el-table-column>
+
         <!-- 行操作 -->
         <el-table-column
           label="行操作"
@@ -181,21 +191,21 @@
           <template #default="{ row }">
             <template v-if="isFirstRowInGroup(row)">
               <el-button
-                v-if="!isGroupRowEditing(row) && !row.isPEditing"
+                v-if="!row.isAddingGroup && !row.isPEditing  && !isGroupRowEditing(row.groupId)"
                 size="small"
                 @click="editGroup(row.groupId)"
               >
                 编辑
               </el-button>
               <el-button
-                v-if="!isGroupRowEditing(row) && row.isPEditing"
+                v-if="!row.isAddingGroup && row.isPEditing"
                 size="small"
                 @click="cancelEditGroup(row.groupId)"
               >
                 取消
               </el-button>
               <el-button
-                v-if="!isGroupRowEditing(row) && row.isPEditing"
+                v-if="!row.isAddingGroup && row.isPEditing"
                 size="small"
                 type="primary"
                 @click="updateGroup(row.groupId)"
@@ -203,7 +213,7 @@
                 更新
               </el-button>
               <el-button
-                v-if="!isGroupRowEditing(row) && !row.isPEditing"
+                v-if="!row.isPEditing  && !isGroupRowEditing(row.groupId)"
                 size="small"
                 type="danger"
                 @click="deleteGroup(row.groupId)"
@@ -211,7 +221,7 @@
                 删除
               </el-button>
               <el-button
-                v-if="!isGroupRowEditing(row)  && !row.isPEditing"
+                v-if="!row.isPEditing  && !isGroupRowEditing(row.groupId)"
                 size="small"
                 type="primary"
                 @click="addRegionProjectRow(row)"
@@ -239,7 +249,7 @@
       </el-table>
     </el-card>
 
-    <!-- 项目配置 -->
+    <!-- 默认项目配置 -->
     <el-card class="config-card">
       <h2 class="section-title">默认项目配置</h2>
       <el-button 
@@ -250,6 +260,23 @@
       </el-button>
       <el-table :data="projectDTOs" style="width: 100%; margin-top: 10px" :border="true">
         <el-table-column prop="projectId" label="项目ID" width="80" />
+        <el-table-column prop="roleId" label="角色" >
+          <template #default="{ row }">
+            <template v-if="row.isEditing">
+              <el-select v-model="row.roleId" placeholder="选择角色">
+                <el-option
+                  v-for="[roleId, roleName] in Object.entries(roleMap)"
+                  :key="roleId"
+                  :label="roleName"
+                  :value="roleId"
+                />
+              </el-select>
+            </template>
+            <template v-else>
+              {{ roleMap[row.roleId] }}
+            </template>
+          </template>
+        </el-table-column>
         <el-table-column prop="projectName" label="项目名称" >
           <template #default="{ row }">
             <template v-if="row.isEditing">
@@ -257,7 +284,7 @@
             </template>
           </template>
         </el-table-column>
-        <el-table-column prop="projectAmount" label="项目金额" >
+        <el-table-column prop="projectAmount" label="项目金额($)" >
           <template #default="{ row }">
             <template v-if="row.isEditing">
               <el-input v-model.number="row.projectAmount" type="number" />
@@ -412,11 +439,16 @@
 <script>
 import { ref, computed, watch, onMounted } from 'vue';
 import {
-  fetchAllTypes,
-  updateRegionProjects,
-  deleteRegionProjects,
-  updateProject,
-  updateRegionCurrency,
+  fetchAllTypes as apiFetchAllTypes,
+  updateProject as apiUpdateProject,
+  deleteProject as apiDeleteProject,
+  addProject as apiAddProject,
+  updateRegionCurrency as apiUpdateRegionCurrency,
+  deleteRegionCurrency as apiDeleteRegionCurrency,  
+  addRegionCurrency as apiAddRegionCurrency,
+  updateRegionProjects as apiUpdateRegionProjects,
+  deleteRegionProjects as apiDeleteRegionProjects,
+  addRegionProjects as apiAddRegionProjects,
 } from '@/api/utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
@@ -443,22 +475,48 @@ export default {
 
     const saveNewProject = async (row) => {
       const payload = {
+        roleId: row.roleId,
         projectName: row.projectName,
         projectAmount: row.projectAmount,
       };
       try {
-        const response = await addProject(payload);
+        const response = await apiAddProject(payload);
         if (response.data && response.data.success) {
           row.projectId = response.data.data.projectId;
           row.isAdding = false;
           row.original = { ...row };
           ElMessage.success('项目新增成功');
+          row.isEditing = false;
         } else {
           ElMessage.error('新增失败: ' + response.data.message);
         }
       } catch (error) {
         console.error('Failed to add project:', error);
         ElMessage.error('新增项目时发生错误');
+      }
+    };
+
+    const deleteProject = async (row) => {
+      try {
+        await ElMessageBox.confirm('确定删除此项目吗?', '提示', {
+          type: 'warning',
+        });
+
+        const response = await apiDeleteProject({ projectId: row.projectId });
+        if (response.data && response.data.success) {
+          const index = projectDTOs.value.findIndex(item => item === row);
+          if (index !== -1) {
+            projectDTOs.value.splice(index, 1);
+          }
+          ElMessage.success('删除成功');
+        } else {
+          ElMessage.error('删除失败: ' + response.data.message);
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error(error);
+          ElMessage.error('删除失败');
+        }
       }
     };
 
@@ -480,7 +538,6 @@ export default {
         projectId: '',
         projectAmount: null,
         roleId: '',
-        isREditing: true,
         isPEditing: true,
         isAddingGroup: true,
         original: {},
@@ -492,13 +549,16 @@ export default {
       const requestData = [
         {
           regionCode: row.regionCode,
+          regionName: row.regionName,
           currencyCode: row.currencyCode,
+          currencyName: row.currencyName,
           projectId: row.projectId,
+          projectName: row.projectName,
           projectAmount: row.projectAmount,
         },
       ];
       try {
-        const response = await addRegionProjects(requestData);
+        const response = await apiAddRegionProjects(requestData);
         if (response.data && response.data.success) {
           // 重新获取数据
           await fetchData();
@@ -553,13 +613,16 @@ export default {
       const requestData = [
         {
           regionCode: row.regionCode,
+          regionName: row.regionName,
           currencyCode: row.currencyCode,
+          currencyName: row.currencyName,
           projectId: row.projectId,
+          projectName: row.projectName,
           projectAmount: row.projectAmount,
         },
       ];
       try {
-        const response = await addRegionProjects(requestData);
+        const response = await apiAddRegionProjects(requestData);
         if (response.data && response.data.success) {
           // 重新获取数据
           await fetchData();
@@ -601,17 +664,48 @@ export default {
         currencyName: row.currencyName,
       };
       try {
-        const response = await addRegionCurrency(payload);
+        const response = await apiAddRegionCurrency(payload);
         if (response.data && response.data.success) {
           row.isAdding = false;
           row.original = { ...row };
           ElMessage.success('地区和币种新增成功');
+          row.isEditing = false;
         } else {
           ElMessage.error('新增失败: ' + response.data.message);
         }
       } catch (error) {
         console.error('Failed to add region currency:', error);
         ElMessage.error('新增地区和币种时发生错误');
+      }
+    };
+
+    const deleteRegionCurrency = async (row) => {
+      try {
+        await ElMessageBox.confirm('确定删除此地区和币种吗?', '提示', {
+          type: 'warning',
+        });
+
+        const payload = {
+          regionCode: row.regionCode,
+          regionName: row.regionName,
+          currencyCode: row.currencyCode,
+          currencyName: row.currencyName,
+        };
+        const response = await apiDeleteRegionCurrency(payload);
+        if (response.data && response.data.success) {
+          const index = regionCurrencyDTOs.value.findIndex(item => item === row);
+          if (index !== -1) {
+            regionCurrencyDTOs.value.splice(index, 1);
+          }
+          ElMessage.success('删除成功');
+        } else {
+          ElMessage.error('删除失败: ' + response.data.message);
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error(error);
+          ElMessage.error('删除失败');
+        }
       }
     };
 
@@ -647,15 +741,15 @@ export default {
       6: '初阶学员',
     };
 
+    const rateMap = ref({});
+
     // 监听单行 projectName 的变化，更新本行 roleId
     watch(processedRegionProjects, (newVal, oldVal) => {
       newVal.forEach(row => {
-        if (row.isPEditing) {
-          const project = projectDTOs.value.find(item => item.projectName === row.projectName);
-          if (project) {
-            row.projectId = project.projectId;
-            row.roleId = project.roleId;
-          }
+        const project = projectDTOs.value.find(item => item.projectName === row.projectName);
+        if (project) {
+          row.projectId = project.projectId;
+          row.roleId = project.roleId;
         }
       });
     }, { deep: true });
@@ -674,7 +768,7 @@ export default {
 
     const fetchData = async () => {
       try {
-        const response = await fetchAllTypes();
+        const response = await apiFetchAllTypes();
         console.log(response);
         if (response.data && response.data.success) {
           projectDTOs.value = response.data.data.projectDTOs;
@@ -691,6 +785,13 @@ export default {
         console.error(error);
         ElMessage.error('获取数据出错: ' + error.message);
       }
+    };
+
+    const exchangeAmount = (projectAmount, currencyCode) => {
+      if (!currencyCode) return;
+      if (!rateMap.value[currencyCode]) return;
+      if (!projectAmount) return 0;
+      return Math.round(projectAmount / rateMap.value[currencyCode]);
     };
 
     onMounted(fetchData);
@@ -733,6 +834,7 @@ export default {
         item.isEditing = false;
         item.isAdding = false;
         item.original = { ...item };
+        rateMap.value[item.currencyCode] = item.rate;
       });
     };
 
@@ -795,7 +897,7 @@ export default {
       }];
 
       try {
-        const response = await updateRegionProjects(requestData);
+        const response = await apiUpdateRegionProjects(requestData);
         if (response.data && response.data.success) {
           row.original = { ...row };
           row.isREditing = false;
@@ -821,7 +923,7 @@ export default {
           projectId: row.projectId,
         }];
 
-        const response = await deleteRegionProjects(requestData);
+        const response = await apiDeleteRegionProjects(requestData);
         if (response.data && response.data.success) {
           const index = processedRegionProjects.value.findIndex(item => item === row);
           if (index !== -1) {
@@ -860,13 +962,16 @@ export default {
       const groupRows = processedRegionProjects.value.filter(item => item.groupId === groupId);
       const requestData = groupRows.map(row => ({
         regionCode: row.regionCode,
+        regionName: row.regionName,
         currencyCode: row.currencyCode,
+        currencyName: row.currencyName,
         projectId: row.projectId,
+        projectName: row.projectName,
         projectAmount: row.projectAmount,
       }));
 
       try {
-        const response = await updateRegionProjects(requestData);
+        const response = await apiUpdateRegionProjects(requestData);
         if (response.data && response.data.success) {
           groupRows.forEach(row => {
             row.original = { ...row };
@@ -895,7 +1000,7 @@ export default {
           projectId: row.projectId,
         }));
 
-        const response = await deleteRegionProjects(requestData);
+        const response = await apiDeleteRegionProjects(requestData);
         if (response.data && response.data.success) {
           processedRegionProjects.value = processedRegionProjects.value.filter(item => item.groupId !== groupId);
           ElMessage.success('删除成功');
@@ -946,11 +1051,12 @@ export default {
     const updateProject = async (row) => {
       const payload = {
         projectId: row.projectId,
+        roleId: row.roleId,
         projectName: row.projectName,
         projectAmount: row.projectAmount,
       };
       try {
-        const response = await updateProject(payload);
+        const response = await apiUpdateProject(payload);
         if (response.data && response.data.success) {
           row.original = { ...row };
           row.isEditing = false;
@@ -983,7 +1089,7 @@ export default {
         currencyCode: row.currencyCode,
       };
       try {
-        const response = await updateRegionCurrency(payload);
+        const response = await apiUpdateRegionCurrency(payload);
         if (response.data && response.data.success) {
           row.original = { ...row };
           row.isEditing = false;
@@ -1017,6 +1123,8 @@ export default {
       optionsForProjects,
       currencyOptions,
       roleMap,
+      rateMap,
+      exchangeAmount,
       spanMethod,
       isFirstRowInGroup,
       isGroupRowEditing,
@@ -1033,7 +1141,9 @@ export default {
       editProject,
       cancelEditProject,
       updateProject,
+      deleteProject,
       editRegionCurrency,
+      deleteRegionCurrency,
       cancelEditRegionCurrency,
       updateRegionCurrency,
     };

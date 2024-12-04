@@ -1,22 +1,25 @@
 <template>
   <div class="detailed-config">
-    <!-- 筛选查询部分 -->
     <el-form :model="searchForm" class="filter-form" @submit.prevent>
       <el-row :gutter="20">
-        <!-- 第一行筛选项 -->
         <el-col :span="6">
-          <el-form-item :label="$t('DetailedConfig.fullname')" prop="fullname">
-            <el-input v-model="searchForm.fullname" placeholder="请输入姓名"></el-input>
+          <el-form-item label="姓名" prop="fullname">
+            <el-input v-model="searchForm.fullname" placeholder="输入姓名"></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="6">
-          <el-form-item :label="$t('DetailedConfig.username')" prop="username">
-            <el-input v-model="searchForm.username" placeholder="请输入用户账号"></el-input>
+          <el-form-item label="账号" prop="username">
+            <el-input v-model="searchForm.username" placeholder="输入账号"></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="6">
-          <el-form-item :label="$t('DetailedConfig.roleId')" prop="roleId">
-            <el-select v-model="searchForm.roleId" placeholder="请选择角色" clearable style="width: 100%;">
+          <el-form-item label="平台邀请码" prop="invitationCode">
+            <el-input v-model="searchForm.invitationCode" placeholder="输入邀请码"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="角色" prop="roleId">
+            <el-select v-model="searchForm.roleId" placeholder="选择角色" clearable style="width: 100%;">
               <el-option
                 v-for="(label, value) in roleOptions"
                 :key="value"
@@ -26,11 +29,29 @@
             </el-select>
           </el-form-item>
         </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
         <el-col :span="6">
-          <el-form-item :label="$t('DetailedConfig.permissionId')" prop="permissionId">
-            <el-select v-model="searchForm.permissionId" placeholder="请选择权限名称" clearable style="width: 100%;">
+          <el-form-item label="邀请人姓名" prop="inviterName">
+            <el-input v-model="searchForm.inviterFullname" placeholder="输入邀请人姓名"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="邀请人账号" prop="inviterFullname">
+            <el-input v-model="searchForm.inviterName" placeholder="输入邀请人账号"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="邀请人邀请码" prop="inviterCode">
+            <el-input v-model="searchForm.inviterCode" placeholder="输入邀请码"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="权限" prop="permissionId">
+            <el-select v-model="searchForm.permissionId" placeholder="选择权限" clearable style="width: 100%;">
               <el-option
-                v-for="(label, value) in permissionIdOptions"
+                v-for="(label, value) in permissionOptions"
                 :key="value"
                 :label="label"
                 :value="value">
@@ -39,24 +60,88 @@
           </el-form-item>
         </el-col>
       </el-row>
-      
-      <el-row :gutter="20" style="margin-top: 20px;">
-        <!-- 第二行筛选项 -->
+
+      <!-- 管理人 -->
+      <el-row :gutter="20">
         <el-col :span="6">
-          <el-form-item :label="$t('DetailedConfig.isEnabled')" prop="isEnabled">
-            <el-select v-model="searchForm.isEnabled" placeholder="是否启用" clearable style="width: 100%;">
-              <el-option :label="$t('DetailedConfig.optionYes')" :value="true"></el-option>
-              <el-option :label="$t('DetailedConfig.optionNo')" :value="false"></el-option>
+          <el-form-item label="管理人姓名" prop="managerFullname">
+            <el-input v-model="searchForm.managerFullname" placeholder="输入管理人姓名"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="管理人账号" prop="managerName">
+            <el-input v-model="searchForm.managerName" placeholder="输入管理人账号"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label="是否启用" prop="status">
+            <el-select v-model="searchForm.status" placeholder="请选择" clearable style="width: 100%;">
+              <el-option
+                v-for="(label, value) in yesNoOptions"
+                :key="value"
+                :label="label"
+                :value="value">
+              </el-option>
             </el-select>
           </el-form-item>
         </el-col>
+        <el-col :span="6">
+          <el-form-item label="是否当前" prop="isCurrent">
+            <el-select v-model="searchForm.isCurrent" placeholder="请选择" clearable style="width: 100%;">
+              <el-option
+                v-for="(label, value) in yesNoOptions"
+                :key="value"
+                :label="label"
+                :value="value">
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="开始日期" prop="startDateAfter">
+            <el-date-picker
+              v-model="searchForm.startDateAfter"
+              type="date"
+              placeholder="选择开始日期"
+              style="width: 50%;"
+            />
+            <el-date-picker
+              v-model="searchForm.startDateBefore"
+              type="date"
+              placeholder="选择开始日期"
+              style="width: 50%;"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="结束日期" prop="endDateBefore">
+            <el-date-picker
+              v-model="searchForm.endDateAfter"
+              type="date"
+              placeholder="选择结束日期"
+              style="width: 50%;"
+            />
+            <el-date-picker
+              v-model="searchForm.endDateBefore"
+              type="date"
+              placeholder="选择结束日期"
+              style="width: 50%;"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      
+      <el-row :gutter="20">
         <el-col :span="6">
           <el-form-item :label="$t('DetailedConfig.userId')" prop="userId">
             <el-input v-model="searchForm.userId" placeholder="请输入用户ID"></el-input>
           </el-form-item>
         </el-col>
-        <el-col :span="6">
-        </el-col>
+        <el-col :span="6"></el-col>
+        <el-col :span="6"></el-col>
         <el-col :span="6" class="button-group">
           <el-button type="primary" @click="handleQuery">{{ $t('DetailedConfig.query') }}</el-button>
           <el-button style="margin-left: 10px;" @click="handleReset">{{ $t('DetailedConfig.reset') }}</el-button>
@@ -97,7 +182,7 @@
         :label="$t('DetailedConfig.roleId')"
         >
         <template #default="scope">
-          {{ getRoleName(scope.row.roleId) }}
+          {{ scope.row.roleName }}
         </template>
       </el-table-column>
       <el-table-column
@@ -105,7 +190,7 @@
         :label="$t('DetailedConfig.permissionId')"
         >
         <template #default="scope">
-          {{ getPermissionId(scope.row.permissionId) }}
+          {{ scope.row.permissionName }}
         </template>
       </el-table-column>
       <el-table-column
@@ -143,16 +228,16 @@
         </template>
       </el-table-column>
       <el-table-column
-        prop="isEnabled"
-        :label="$t('DetailedConfig.isEnabled')"
+        prop="status"
+        label="是否启用"
         >
         <template #default="scope">
-          <el-switch v-model="scope.row.isEnabled" :disabled="editingRow !== scope.$index"></el-switch>
+          <el-switch v-model="scope.row.status" :disabled="editingRow !== scope.$index"></el-switch>
         </template>
       </el-table-column>
       <el-table-column
         prop="startDate"
-        :label="$t('DetailedConfig.startDate')"
+        label="开始日期"
         >
         <template #default="scope">
           <div v-if="editingRow === scope.$index">
@@ -171,7 +256,7 @@
       </el-table-column>
       <el-table-column
         prop="endDate"
-        :label="$t('DetailedConfig.endDate')"
+        label="结束日期"
         >
         <template #default="scope">
           <div v-if="editingRow === scope.$index">
@@ -194,20 +279,33 @@
         <template #default="scope">
           <div v-if="editingRow === scope.$index">
             <el-button size="small" @click="handleCancel">
-              {{ $t('DetailedConfig.cancel') }}
+              取消
             </el-button>
             <el-button type="primary" size="small" @click="handleSave(scope.row, scope.$index)">
-              {{ $t('DetailedConfig.save') }}
+              保存
             </el-button>
           </div>
           <div v-else>
             <el-button type="primary" size="small" @click="handleEdit(scope.$index)">
-              {{ $t('DetailedConfig.edit') }}
+              编辑
             </el-button>
           </div>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 分页组件 -->
+    <el-pagination
+      @current-change="handlePageChange"
+      @size-change="handleSizeChange"
+      :current-page="currentPage"
+      :page-size="pageSize"
+      show-size-picker
+      show-total
+      :total="totalElements"
+      layout="total, prev, pager, next, jumper, sizes"
+      style="margin-top: 20px; text-align: right;"
+    />
   </div>
 </template>
 
@@ -215,45 +313,47 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import { searchUserPermissions, updateuserpermission } from '@/api/utils';
+import { searchRolePermissions, updateRolePermission } from '@/api/utils';
 
 // 国际化
 const { t } = useI18n();
 
 // 筛选表单数据
 const searchForm = reactive({
-  userId: '',
   username: '',
   fullname: '',
-  roleId: '',
+  managerName: '',
+  managerFullname: '',
+  inviterName: '',
+  inviterFullname: '',
+  roleId: null,
   permissionId: null,
-  isEnabled: null
+  status: null,
+  isCurrent: null,
+  invitationCode: '',
+  inviterCode: '',
+  startDateAfter: '',
+  startDateBefore: '',
+  endDateAfter: '',
+  endDateBefore: ''
 });
 
-// 角色选项映射
+// 是否选项映射
+const yesNoOptions = {
+  true: "是",
+  false: "否"
+};
+
 const roleOptions = {
-  2: t('DetailedConfig.roleOptions.MANAGER'),
-  3: t('DetailedConfig.roleOptions.MINISTER'),
-  4: t('DetailedConfig.roleOptions.AGENT1L'),
-  5: t('DetailedConfig.roleOptions.AGENT2L')
+  4: "高阶学员",
+  5: "中阶学员",
+  6: "初阶学员"
 };
 
-const roleMaps = {
-  1: t('DetailedConfig.roleOptions.SUPER_ADMIN'),
-  2: t('DetailedConfig.roleOptions.MANAGER'),
-  3: t('DetailedConfig.roleOptions.MINISTER'),
-  4: t('DetailedConfig.roleOptions.AGENT1L'),
-  5: t('DetailedConfig.roleOptions.AGENT2L'),
-  6: t('DetailedConfig.roleOptions.AGENT3L'),
-  7: t('DetailedConfig.roleOptions.PITCHER'),
-  8: t('DetailedConfig.roleOptions.FINANCE')
-};
-
-// 权限名称映射（仅包含四个）
-const permissionIdOptions = {
-  1: t('DetailedConfig.permissionIdOptions.PROFIT_LEVEL_1'),
-  2: t('DetailedConfig.permissionIdOptions.PROFIT_LEVEL_2'),
-  3: t('DetailedConfig.permissionIdOptions.PROFIT_LEVEL_3')
+const permissionOptions = {
+  1: "一级抽佣",
+  2: "二级抽佣",
+  3: "三级抽佣"
 };
 
 // 表格数据
@@ -261,6 +361,12 @@ const tableData = ref([]);
 
 // 加载状态
 const loading = ref(false);
+
+// 分页
+const currentPage = ref(1);
+const pageSize = ref(10);
+const totalElements = ref(0);
+const totalPages = ref(1);
 
 // 当前编辑的行索引
 const editingRow = ref(null);
@@ -270,21 +376,18 @@ const originalRow = ref(null);
 
 // 查询函数
 const handleQuery = async () => {
-  // 构建查询参数
-  const params = {
-    userId: searchForm.userId,
-    username: searchForm.username,
-    fullname: searchForm.fullname,
-    roleId: searchForm.roleId,
-    permissionId: searchForm.permissionId,
-    isEnabled: searchForm.isEnabled
-  };
-
   loading.value = true;
+  const payload = {
+    ...searchForm,
+    page: currentPage.value - 1,
+    size: pageSize.value
+  };
   try {
-    const response = await searchUserPermissions(params);
+    const response = await searchRolePermissions(payload);
     if (response.data.success) {
       tableData.value = response.data.data.content;
+      totalElements.value = response.data.data.totalElements;
+      totalPages.value = response.data.data.totalPages;
     } else {
       ElMessage.error(response.message || t('DetailedConfig.queryFailed'));
     }
@@ -297,12 +400,22 @@ const handleQuery = async () => {
 
 // 重置函数
 const handleReset = () => {
-  searchForm.userId = '';
   searchForm.username = '';
   searchForm.fullname = '';
-  searchForm.roleId = '';
-  searchForm.permissionId = '';
-  searchForm.isEnabled = null;
+  searchForm.managerName = '';
+  searchForm.managerFullname = '';
+  searchForm.inviterName = '';
+  searchForm.inviterFullname = '';
+  searchForm.roleId = null;
+  searchForm.permissionId = null;
+  searchForm.status = null;
+  searchForm.isCurrent = null;
+  searchForm.invitationCode = '';
+  searchForm.inviterCode = '';
+  searchForm.startDateAfter = '';
+  searchForm.startDateBefore = '';
+  searchForm.endDateAfter = '';
+  searchForm.endDateBefore = '';
 };
 
 // 编辑函数
@@ -320,7 +433,7 @@ const handleSave = async (row, index) => {
   }
 
   try {
-    const response = await updateuserpermission(row);
+    const response = await updateRolePermission(row);
     if (response.data.success) {
       ElMessage.success(t('DetailedConfig.updateSuccess'));
       editingRow.value = null;
@@ -355,20 +468,38 @@ const validateRateField = (row, field) => {
   const value = parseFloat(row[field]);
 
   if (isNaN(value) || value < 0 || value > 1) {
-    ElMessage.error(t('DetailedConfig.rateValidationError')); // 提示用户输入不合法
+    ElMessage.error("请输入 0 到 1 之间的数字");
     return false;
   }
   return true;
 };
 
-// 获取角色名称的显示名称，若无对应翻译则返回原值
-const getRoleName = (value) => {
-  return roleMaps[value] || value;
+/**
+ * 处理页码变化
+ * @param {Number} page - 当前页码
+ */
+const handlePageChange = async (page) => {
+  currentPage.value = page;
+  const payload = {
+    ...searchForm,
+    page: currentPage.value - 1,
+    size: pageSize.value
+  };
+  await handleQuery(payload);
 };
 
-// 获取权限名称的显示名称，若无对应翻译则返回原值
-const getPermissionId = (value) => {
-  return permissionIdOptions[value] || value;
+/**
+ * 处理分页大小变化
+ * @param {Number} newSize - 新的分页大小
+ */
+const handleSizeChange = async (newSize) => {
+  pageSize.value = newSize;
+  const payload = {
+    ...searchForm,
+    page: 0,
+    size: pageSize.value
+  };
+  await handleQuery(payload);
 };
 
 // 初始化查询

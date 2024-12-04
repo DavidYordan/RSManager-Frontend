@@ -606,8 +606,13 @@ export default {
           const rateOptionKey = findRateOptionKey(form.roleId, form.rateA, form.rateB);
           if (rateOptionKey) {
             form.rateOption = rateOptionKey;
+            form.rateA = rateOptions[form.roleId][rateOptionKey].rateA;
+            form.rateB = rateOptions[form.roleId][rateOptionKey].rateB;
           } else {
-            form.rateOption = Object.keys(rateOptions[form.roleId])[0];
+            const firstOptionKey = Object.keys(rateOptions[form.roleId])[0];
+            form.rateOption = firstOptionKey;
+            form.rateA = rateOptions[form.roleId][firstOptionKey].rateA;
+            form.rateB = rateOptions[form.roleId][firstOptionKey].rateB;
           }
         }
       }

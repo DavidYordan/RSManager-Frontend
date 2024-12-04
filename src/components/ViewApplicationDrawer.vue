@@ -76,8 +76,18 @@
                 <el-form-item :label="t('ViewApplicationDrawer.fields.rateB')">
                   <span>{{ applicationData.rateB }}</span>
                 </el-form-item>
-                <el-form-item :label="t('ViewApplicationDrawer.fields.managerName')">
-                  <span>{{ applicationData.managerName }}</span>
+                <el-form-item label="管理人姓名">
+                  <div class="value-with-button">
+                    <span>{{ applicationData.managerName }}</span>
+                    <el-button 
+                      v-if="isEditable('managerName')" 
+                      type="info" 
+                      size="small" 
+                      class="change-button" 
+                      @click="openFindUserDialog('managerName')">
+                      变更
+                    </el-button>
+                  </div>
                 </el-form-item>
                 <el-form-item :label="t('ViewApplicationDrawer.fields.inviterName')">
                   <span>{{ applicationData.inviterName == null ? applicationData.initInviterName : applicationData.inviterName }}</span>
@@ -344,6 +354,15 @@
       </span>
     </el-dialog>
 
+    <!-- Find User Dialog -->
+    <ApplicationFindUser
+      v-if="applicationData && currentEditField"
+      :fieldKey="currentEditField"
+      :processId="processId"
+      ref="findUserRef"
+      @updateSuccess="handleFindUserSuccess"
+    />
+
     <!-- AddPayment Component -->
     <AddPayment
       v-if="applicationData"
@@ -449,10 +468,11 @@ import EnrollEdit from '@/components/EnrollEdit.vue';
 import UpgradeRoleDialog from '@/components/UpgradeRoleDialog.vue';
 import AddRoleDialog from '@/components/AddRoleDialog.vue';
 import RequestLink from '@/components/RequestLink.vue';
+import ApplicationFindUser from '@/components/ApplicationFindUser.vue';
 
 export default {
   name: 'ViewApplicationDrawer',
-  components: { AddPayment, AddPaymentS, EditPayment, EnrollEdit, UpgradeRoleDialog, AddRoleDialog, RequestLink },
+  components: { AddPayment, AddPaymentS, EditPayment, EnrollEdit, UpgradeRoleDialog, AddRoleDialog, RequestLink, ApplicationFindUser },
   setup(_, { emit, expose }) {
     const { t } = useI18n();
     const drawerVisible = ref(false);
@@ -463,6 +483,7 @@ export default {
     const canViewAction = ref(false);
 
     const isDialogVisible = ref(false);
+    const currentEditField = ref(null);
 
     // Image Preview Dialog
     const imagePreviewVisible = ref(false);
@@ -484,6 +505,7 @@ export default {
     const editUpgradeRoleRef = ref(null);
     const editAddRoleRef = ref(null);
     const requestLinkRef = ref(null);
+    const findUserRef = ref(null);
 
     // 合同上传对话框的状态
     const MAX_TOTAL_SIZE = 300 * 1024 * 1024;
@@ -1128,6 +1150,14 @@ export default {
       }
     });
 
+    const isEditable = (fieldKey) => {
+      if (store.roleId === 1) {
+        return ['managerName'].includes(fieldKey);
+      } else {
+        return false;
+      }
+    };
+
     const closeDrawer = () => {
       drawerVisible.value = false;
       applicationData.value = null;
@@ -1142,6 +1172,13 @@ export default {
     const openAddPaymentSDialog = () => {
       if (addPaymentSRef.value) {
         addPaymentSRef.value.openDialog();
+      }
+    };
+
+    const openFindUserDialog = (fieldKey) => {
+      currentEditField.value = fieldKey;
+      if (findUserRef.value) {
+        findUserRef.value.openDialog();
       }
     };
 
@@ -1358,6 +1395,10 @@ export default {
       imagePreviewVisible.value = false;
       imagePreviewUrl.value = '';
       imageOriginalFileName.value = '';
+    };
+
+    const handleFindUserSuccess = async () => {
+      await showDrawer(processId.value);
     };
 
     // Download and handle file
@@ -1598,6 +1639,7 @@ export default {
       openAddPaymentDialog,
       openAddPaymentSDialog,
       openEditPaymentDialog,
+      openFindUserDialog,
       contractDialogVisible,
       contractFileList,
       contractUploadRef,
@@ -1618,7 +1660,11 @@ export default {
       existPaymentRecords,
       canAddRole,
       canUpgradeRole,
-      paymentStatusOptions
+      paymentStatusOptions,
+      findUserRef,
+      currentEditField,
+      handleFindUserSuccess,
+      isEditable
     };
   }
 };

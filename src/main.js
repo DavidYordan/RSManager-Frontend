@@ -7,7 +7,7 @@ import { createPinia } from 'pinia';
 import ElementPlus, { install } from 'element-plus';
 // import * as ElIcons from '@element-plus/icons-vue';
 import 'element-plus/dist/index.css';
-// import '@/assets/css/global.css';
+// import '@/assets/css/global.scss';
 
 import i18n from './i18n';
 

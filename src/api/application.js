@@ -359,6 +359,15 @@ export function approveRoleUpgradeByFinance(data) {
   });
 }
 
+// changemanager
+export function changeManager(data) {
+  return request({
+    url: `/application/changemanager`,
+    method: 'post',
+    data
+  });
+}
+
 // 检查用户姓名是否存在 checkFullname
 export function checkFullname(fullname) {
   return request({

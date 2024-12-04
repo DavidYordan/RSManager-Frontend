@@ -1,11 +1,13 @@
 <template>
-  <div class="container">
+  <div class="home-container">
+    <!-- 背景图 -->
+    <div class="background-overlay"></div>
 
     <!-- 鼠标拖尾效果的容器 -->
     <canvas id="mouse-trail-canvas"></canvas>
 
     <!-- 华丽的主页内容 -->
-    <div>
+    <div class="content-container">
       <!-- 右上角的按钮容器 -->
       <div class="button-container">
         <el-button
@@ -40,7 +42,7 @@
       <div class="cards-container">
         <!-- 卡片1：汇总收益 -->
         <el-card class="summary-card">
-          <h3 class="title" :style="{ '--title-size': '1.5em' }">您的本月佣金 [{{ currentMonthLabel }}]</h3>
+          <h3>您的本月佣金 [{{ currentMonthLabel }}]</h3>
           <div class="card-content">
             <template v-if="Object.keys(summaryCard1).length === 0">
               <p>暂无数据</p>
@@ -62,7 +64,7 @@
 
         <!-- 卡片2：短剧平台汇总 -->
         <el-card class="summary-card">
-          <h3 class="title" :style="{ '--title-size': '1.5em' }">短剧平台汇总</h3>
+          <h3>短剧平台汇总</h3>
           <div class="card-content">
             <div class="currencyName-row">
               <el-link @click="openTotalRevenueDialog()" type="primary">
@@ -625,6 +627,38 @@ export default {
 </script>
 
 <style scoped>
+.home-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  /* color: #000; */
+}
+
+/* 背景图 */
+.background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* background: url('@/src/assets/images/bg1.jpg') no-repeat center center; */
+  background-size: cover;
+  filter: brightness(0.7);
+  z-index: 0;
+}
+
+/* 华丽的主页内容容器 */
+.content-container {
+  position: relative;
+  z-index: 1;
+  padding: 20px;
+  box-sizing: border-box;
+  /* overflow-y: auto; */
+  height: 100%;
+  /* background: transparent; */
+}
+
 /* 按钮容器样式 */
 .button-container {
   position: absolute;
@@ -652,7 +686,7 @@ export default {
   box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5),
     0 0 10px rgba(0, 0, 0, 0.5);
   border-radius: 8px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.8);
   display: flex;
   flex-direction: column;
   /* flex: 1; */

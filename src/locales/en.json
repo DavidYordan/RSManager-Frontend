@@ -195,6 +195,12 @@
     "enterProjectAmount": "Enter Project Amount"
   },
   "login": {
+    "growthChartTitle":"Growth Chart",
+    "date": "Date",
+    "value": "Value",
+    "summaryProfit": "Total Profit",
+    "accessDenied": "Access Denied",
+    "loginFailed": "Login failed",
     "captcha": "Captcha",
     "captchaError": "Captcha error",
     "login": "Login",
@@ -202,6 +208,7 @@
     "enterDashboard": "Enter Dashboard",
     "username": "Username",
     "password": "Password",
+    "resetPassword": "Reset Password",
     "tokenExpired": "Session expired, please log in again.",
     "captchaRequired": "Please enter captcha",
     "usernameRequired": "Please enter username",

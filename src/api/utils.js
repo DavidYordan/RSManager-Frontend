@@ -10,27 +10,28 @@ export function fetchAllRegions() {
     return request.get('/system/allregionprojects');
   }
 
-// 按条件获取角色权限
-export function searchUserPermissions(data) {
-return request({
-    url: '/system/searchuserpermissions',
-    method: 'post',
-    data
-  })
-}
-
-export function updateRolePermissions(data) {
+// updateProject
+export function updateProject(data) {
     return request({
-      url: '/system/updaterolepermission',
+      url: '/system/updateproject',
       method: 'post',
       data
     });
 }
 
-// updateProject
-export function updateProject(data) {
+// deleteProject
+export function deleteProject(data) {
     return request({
-      url: '/system/updateproject',
+      url: '/system/deleteproject',
+      method: 'post',
+      data
+    });
+}
+
+// addproject
+export function addProject(data) {
+    return request({
+      url: '/system/addproject',
       method: 'post',
       data
     });
@@ -45,22 +46,25 @@ export function updateRegionCurrency(data) {
     });
 }
 
-export function updateuserpermission(data) {
+// deleteregioncurrency
+export function deleteRegionCurrency(data) {
     return request({
-      url: '/system/updateuserpermission',
-      method: 'POST',
-      data
-    });
-}
-
-export function deleteRegion(data) {
-    return request({
-      url: '/system/deleteregion',
+      url: '/system/deleteregioncurrency',
       method: 'post',
       data
     });
 }
 
+// addregioncurrency
+export function addRegionCurrency(data) {
+    return request({
+      url: '/system/addregioncurrency',
+      method: 'post',
+      data
+    });
+}
+
+// updateregionprojects
 export function updateRegionProjects(data) {
     return request({
       url: '/system/updateregionprojects',
@@ -69,9 +73,37 @@ export function updateRegionProjects(data) {
     });
 }
 
+// deleteregionprojects
 export function deleteRegionProjects(data) {
     return request({
       url: '/system/deleteregionprojects',
+      method: 'post',
+      data
+    });
+}
+
+// addregionprojects
+export function addRegionProjects(data) {
+    return request({
+      url: '/system/addregionprojects',
+      method: 'post',
+      data
+    });
+}
+
+// searchrolepermissions
+export function searchRolePermissions(data) {
+    return request({
+      url: '/system/searchrolepermissions',
+      method: 'post',
+      data
+    });
+}
+
+// updaterolepermission
+export function updateRolePermission(data) {
+    return request({
+      url: '/system/updaterolepermission',
       method: 'post',
       data
     });
