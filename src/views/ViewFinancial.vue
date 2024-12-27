@@ -38,7 +38,23 @@
             <el-input v-model="form.managerName" placeholder="输入管理人用户名"></el-input>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col :span="6">
+          <el-form-item label="状态">
+            <el-select v-model="form.state" placeholder="选择状态" clearable>
+              <el-option
+                v-for="(label, value) in stateOptions"
+                :key="value"
+                :label="label"
+                :value="value"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      
+      <!-- 第三行搜索项 -->
+      <el-row :gutter="20">
+        <el-col :span="6">
           <el-form-item label="创建时间">
             <el-date-picker
               v-model="form.createdAfter"
@@ -52,23 +68,7 @@
             ></el-date-picker>
           </el-form-item>
         </el-col>
-      </el-row>
-      
-      <!-- 第三行搜索项 -->
-      <el-row :gutter="20">
         <el-col :span="6">
-          <el-form-item label="状态">
-            <el-select v-model="form.state" placeholder="选择状态" clearable>
-              <el-option
-                v-for="(label, value) in stateOptions"
-                :key="value"
-                :label="label"
-                :value="value"
-              ></el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="提现时间">
             <el-date-picker
               v-model="form.outAfter"
@@ -82,7 +82,18 @@
             ></el-date-picker>
           </el-form-item>
         </el-col>
-      
+        <el-col :span="6">
+          <el-form-item label="ID范围">
+            <el-input
+              v-model="form.idAfter"
+              placeholder="开始ID"
+            ></el-input>
+            <el-input
+              v-model="form.idBefore"
+              placeholder="结束ID"
+            ></el-input>
+          </el-form-item>
+        </el-col>
         <el-col :span="6" style="text-align: right;">
           <el-form-item>
             <el-button type="primary" @click="searchCashOuts">搜索</el-button>
@@ -209,6 +220,8 @@ export default {
       inviterName: '',
       managerFullname: '',
       managerName: '',
+      idAfter: null,
+      idBefore: null,
       createdAfter: null,
       createdBefore: null,
       outAfter: null,
@@ -229,6 +242,8 @@ export default {
           inviterName: form.inviterName,
           managerFullname: form.managerFullname,
           managerName: form.managerName,
+          idAfter: form.idAfter ? parseInt(form.idAfter) : null,
+          idBefore: form.idBefore ? parseInt(form.idBefore) : null,
           createdAfter: form.createdAfter ? new Date(form.createdAfter).toISOString() : null,
           createdBefore: form.createdBefore ? new Date(form.createdBefore).toISOString() : null,
           outAfter: form.outAfter ? new Date(form.outAfter).toISOString() : null,
@@ -261,6 +276,8 @@ export default {
       form.inviterName = '';
       form.managerFullname = '';
       form.managerName = '';
+      form.idAfter = null;
+      form.idBefore = null;
       form.createdAfter = null;
       form.createdBefore = null;
       form.outAfter = null;
@@ -283,12 +300,16 @@ export default {
       loading.value = true;
       try {
         const payload = {
+          page: currentPage.value - 1,
+          size: pageSize.value,
           fullname: form.fullname,
           username: form.username,
           inviterFullname: form.inviterFullname,
           inviterName: form.inviterName,
           managerFullname: form.managerFullname,
           managerName: form.managerName,
+          idAfter: form.idAfter ? parseInt(form.idAfter) : null,
+          idBefore: form.idBefore ? parseInt(form.idBefore) : null,
           createdAfter: form.createdAfter ? new Date(form.createdAfter).toISOString() : null,
           createdBefore: form.createdBefore ? new Date(form.createdBefore).toISOString() : null,
           outAfter: form.outAfter ? new Date(form.outAfter).toISOString() : null,

@@ -1,111 +1,61 @@
 <template>
-  <div class="container">
-
-    <!-- 鼠标拖尾效果的容器 -->
-    <canvas id="mouse-trail-canvas"></canvas>
-
-    <!-- 华丽的主页内容 -->
+  <div class="main-container" @click="handleClickOutside">
+    <vue-particles id="tsparticles" :options="particlesOptions"/>
     <div>
-      <!-- 右上角的按钮容器 -->
-      <div class="button-container">
-        <el-button
-          class="reset-password-button"
-          type="primary"
-          round
-          @click="openResetPasswordModal"
-        >
-          {{ $t('login.resetPassword') }}
-        </el-button>
+      <div class="plaque-container slide-ttb">
+        <div class="plaque">
+          <h4>欢迎</h4>
+          <h4>{{ store.username }}</h4>
+        </div>
 
-        <el-button
-          class="logout-button"
-          type="danger"
-          round
-          @click="handleLogout"
-        >
-          {{ t('login.logout') }}
-        </el-button>
+        <div class="rope-container" @click.stop="openDropdown" :class="{ 'disabled': dropdownVisible }">菜单</div>
 
-        <el-button
-          v-if="[1].includes(roleId)"
-          class="dashboard-button"
-          type="primary"
-          @click="goToWorkspace"
-        >
-          {{ t('login.enterDashboard') }}
-        </el-button>
+        <div class="dropdown-menu" :class="{ 'active': dropdownVisible }">
+          <div class="link-container" @click="openResetPasswordModal">重置密码</div>
+          <div class="link-container" @click="handleLogout">注销</div>
+        </div>
       </div>
 
-      <!-- 数据卡片的过渡效果 -->
       <div class="cards-container">
-        <!-- 卡片1：汇总收益 -->
-        <el-card class="summary-card">
-          <h3 class="title" :style="{ '--title-size': '1.5em' }">您的本月佣金 [{{ currentMonthLabel }}]</h3>
-          <div class="card-content">
-            <template v-if="Object.keys(summaryCard1).length === 0">
-              <p>暂无数据</p>
-            </template>
+        <div class="card-container slide-ltr">
+          <div class="corner-tag corner-pre" @click="handlePreviousMonth" :class="{ 'disabled': isPrevMonthDisabled }">上月</div>
+          <div class="corner-tag corner-next" @click="handleNextMonth" :class="{ 'disabled': isNextMonthDisabled}">下月</div>
+          <div class="card-title">
+            <h3>本月佣金</h3>
+            <h4>{{ currentMonthLabel }}</h4>
+          </div>
+          <div class="card-content" :class="fadeClass" @animationend="onAnimationEnd">
             <div
               v-for="(amount, currencyName) in summaryCard1"
               :key="currencyName"
-              class="currencyName-row"
+              class="link-container"
+              @click="openProfitsDialog(currencyName)"
             >
-              <el-link @click="openProfitsDialog()" type="primary"
-                >{{ formatNumber(amount) }} {{ currencyName }}</el-link
-              >
+              <a>{{ formatNumber(amount) }} {{ currencyName }}</a>
             </div>
-            <div class="card-content">
+            <div>
                 总邀请人数：{{ formatNumber(inviteCount) }}
             </div>
           </div>
-        </el-card>
+        </div>
 
-        <!-- 卡片2：短剧平台汇总 -->
-        <el-card class="summary-card">
-          <h3 class="title" :style="{ '--title-size': '1.5em' }">短剧平台汇总</h3>
+        <div class="card-container slide-rtl">
+          <div class="card-title">
+            <h3>短剧平台</h3>
+            <h3>汇总</h3>
+          </div>
           <div class="card-content">
-            <div class="currencyName-row">
-              <el-link @click="openTotalRevenueDialog()" type="primary">
-                总收益：{{ formatNumber(platformTotalRevenue) }} 美元
-              </el-link>
+            <div class="link-container" @click="openTotalRevenueDialog()">
+              <a >总收益：{{ formatNumber(platformTotalRevenue) }} 美元</a>
             </div>
-            <div class="platform-row">
-              已提现：{{ formatNumber(platformTotalWithdrawal) }} 美元
-            </div>
-            <div class="platform-row">
-              可提现：{{ formatNumber(platformRevenueBalance) }} 美元
-            </div>
-            <div class="platform-row">
-              总邀请人数：{{ formatNumber(platformInviteCount) }}
-            </div>
-          </div>
-        </el-card>
-
-        <!-- 在数据卡片右侧增加纵向布局的两个按钮 -->
-        <div class="month-container">
-          <div class="month-navigation">
-            <el-button
-              @click="changeMonth(-1)"
-              :disabled="isPrevMonthDisabled"
-              size="small"
-            >
-              上一月
-            </el-button>
-          </div>
-          <div class="month-navigation">
-            <el-button
-              @click="changeMonth(1)"
-              :disabled="isNextMonthDisabled"
-              size="small"
-            >
-              下一月
-            </el-button>
+            <div>已提现：{{ formatNumber(platformTotalWithdrawal) }} 美元</div>
+            <div>可提现：{{ formatNumber(platformRevenueBalance) }} 美元</div>
+            <div>总邀请人数：{{ formatNumber(platformInviteCount) }}</div>
           </div>
         </div>
       </div>
 
-      <!-- 增长情况图表 -->
-      <div class="chart-container">
+      <div class="chart-container slide-btt">
         <template v-if="growthData && growthData.length > 0">
           <canvas ref="growthChartRef"></canvas>
         </template>
@@ -114,7 +64,6 @@
         </template>
       </div>
 
-      <!-- 明细弹窗 -->
       <el-dialog
         v-model="detailDialogVisible"
         :title="selectedCurrencyName + ' 详情'"
@@ -171,7 +120,9 @@ import ShowProfits from '@/components/ShowProfits.vue';
 import ShowTotalRevenues from '@/components/ShowTotalRevenues.vue';
 import Chart from 'chart.js/auto';
 import dayjs from 'dayjs';
-import { gsap } from 'gsap';
+import { tsParticles } from "@tsparticles/engine";
+import { loadEmittersPlugin } from "@tsparticles/plugin-emitters";
+import particlesOptions from '@/particles-config.js';
 
 export default {
   name: 'Home',
@@ -186,6 +137,7 @@ export default {
     const { t } = useI18n();
 
     const roleId = store.roleId;
+    const dropdownVisible = ref(false);
     const resetPasswordModalVisible = ref(false);
 
     // Generic Dialog
@@ -194,6 +146,16 @@ export default {
     const profitsDialogData = ref([]);
     const ShowTotalRevenuesRef = ref(null);
     const totalRevenuesData = ref([]);
+
+    const openDropdown = () => {
+      dropdownVisible.value = true;
+    };
+
+    const handleClickOutside = () => {
+      if (dropdownVisible.value) {
+        dropdownVisible.value = false;
+      }
+    };
 
     const openResetPasswordModal = () => {
       resetPasswordModalVisible.value = true;
@@ -370,14 +332,12 @@ export default {
               },
               title: {
                 display: true,
-                text: t('Dashboard.growthChartTitle') || '佣金增长情况',
               },
             },
             scales: {
               x: {
                 title: {
                   display: true,
-                  text: t('Dashboard.date') || '日期',
                 },
               },
               ...yAxes,
@@ -391,7 +351,6 @@ export default {
           x: {
             title: {
               display: true,
-              text: t('Dashboard.date') || '日期',
             },
           },
           ...yAxes,
@@ -419,21 +378,6 @@ export default {
     const handleLogout = () => {
       store.logout();
       router.push('/login');
-    };
-
-    const changeMonth = (direction) => {
-      if (direction === -1) {
-        selectedMonth.value = selectedMonth.value.subtract(1, 'month');
-      } else if (direction === 1) {
-        selectedMonth.value = selectedMonth.value.add(1, 'month');
-      }
-      summaryCard1.value = {};
-      platformTotalRevenue.value = 0;
-      platformTotalWithdrawal.value = 0;
-      platformRevenueBalance.value = 0;
-      inviteCount.value = 0;
-      platformInviteCount.value = 0;
-      fetchUserSummary();
     };
 
     const openDetails = (currencyName) => {
@@ -473,111 +417,51 @@ export default {
       }
     };
 
-    const openProfitsDialog = () => {
-      console.log('profitsData.value:', profitsData.value);
+    const openProfitsDialog = (currencyName) => {
       if (profitsData.value.length === 0) {
         ElMessage.warning('无相关数据');
         return;
       }
 
       profitsDialogTitle.value = '分佣明细';
-      profitsDialogData.value = profitsData.value;
+      profitsDialogData.value = profitsData.value.filter((entry) => entry.currencyName === currencyName);
       if (showProfitsRef.value) {
         showProfitsRef.value.openDialog();
       }
     };
 
-    function initMouseTrail() {
-      const canvas = document.getElementById('mouse-trail-canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    const fadeClass = ref('fade-in');
 
-      let particlesArray = [];
-
-      const mouse = {
-        x: null,
-        y: null,
-      };
-
-      window.addEventListener('mousemove', function (event) {
-        mouse.x = event.x;
-        mouse.y = event.y;
-        for (let i = 0; i < 2; i++) {
-          particlesArray.push(new Particle());
-        }
-      });
-
-      class Particle {
-        constructor() {
-          this.x = mouse.x;
-          this.y = mouse.y;
-          this.size = Math.random() * 5 + 1;
-          this.speedX = Math.random() * 3 - 1.5;
-          this.speedY = Math.random() * 3 - 1.5;
-          this.color = 'rgba(212,230,241,0.8)';
-        }
-        update() {
-          this.x += this.speedX;
-          this.y += this.speedY;
-          if (this.size > 0.2) this.size -= 0.1;
-        }
-        draw() {
-          ctx.fillStyle = this.color;
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-          ctx.fill();
-        }
+    const changeMonth = (direction) => {
+      if (direction === -1) {
+        selectedMonth.value = selectedMonth.value.subtract(1, 'month');
+      } else if (direction === 1) {
+        selectedMonth.value = selectedMonth.value.add(1, 'month');
       }
-
-      function handleParticles() {
-        for (let i = 0; i < particlesArray.length; i++) {
-          particlesArray[i].update();
-          particlesArray[i].draw();
-          if (particlesArray[i].size <= 0.3) {
-            particlesArray.splice(i, 1);
-            i--;
-          }
-        }
-      }
-
-      function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        handleParticles();
-        requestAnimationFrame(animate);
-      }
-      animate();
-
-      window.addEventListener('resize', function () {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      });
-    }
-
-    onMounted(() => {
+      summaryCard1.value = {};
+      inviteCount.value = 0;
       fetchUserSummary();
+    };
 
-      // 使用 GSAP 为元素添加动画
-      // gsap.from('.summary-card', {
-      //   opacity: 0,
-      //   y: 50,
-      //   duration: 1,
-      //   stagger: 0.2,
-      // });
-      // gsap.from('.month-navigation .el-button', {
-      //   opacity: 0,
-      //   x: -50,
-      //   duration: 1,
-      //   delay: 0.5,
-      // });
-      gsap.from('.chart-container', {
-        opacity: 0,
-        scale: 0.9,
-        duration: 1,
-        delay: 1,
-      });
+    const handlePreviousMonth = () => {
+      fadeClass.value = 'fade-out';
+      changeMonth(-1);
+    };
 
-      initMouseTrail();
+    const handleNextMonth = () => {
+      fadeClass.value = 'fade-out';
+      changeMonth(1);
+    };
+
+    const onAnimationEnd = () => {
+      if (fadeClass.value === 'fade-out') {
+        fadeClass.value = 'fade-in';
+      }
+    };
+
+    onMounted(async () => {
+      await loadEmittersPlugin(tsParticles);
+      fetchUserSummary();
     });
 
     onBeforeUnmount(() => {
@@ -588,13 +472,21 @@ export default {
     });
 
     return {
+      store,
       roleId,
+      handleClickOutside,
+      dropdownVisible,
+      openDropdown,
       resetPasswordModalVisible,
       openResetPasswordModal,
       closeResetPasswordModal,
       t,
       currentMonthLabel,
+      fadeClass,
+      onAnimationEnd,
       changeMonth,
+      handlePreviousMonth,
+      handleNextMonth,
       isPrevMonthDisabled,
       isNextMonthDisabled,
       summaryCard1,
@@ -619,130 +511,268 @@ export default {
       openProfitsDialog,
       inviteCount,
       platformInviteCount,
+      particlesOptions
     };
   },
 };
 </script>
 
-<style scoped>
-/* 按钮容器样式 */
-.button-container {
+<style lang="scss" scoped>
+
+body.mobile #tsparticles {
+  display: none;
+}
+
+.plaque-container {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 0;
+  right: 0;
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9;
+
+  .mobile & {
+    position: relative;
+    margin-bottom: 3em;
+  }
+
+  .plaque {
+    min-width: 200px;
+    background: $image-ct_silver-avif no-repeat center/cover;
+    text-align: center;
+    padding: 10px;
+    box-shadow: -1px 1px 1px 0px #c0c0c0,
+                -5px 7px 10px 2px rgba(0, 0, 0, 0.5);
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #602020;
+    text-shadow: 1px 1px 1px #FBF7F3,
+                -1px -1px 1px #602020;
+
+    .mobile & {
+      width: 100%;
+    }
+  }
+
+  .rope-container {
+    position: absolute;
+    background: $image-ct_float-avif;
+    color: #3A2B23;
+    text-shadow: 1px 1px 1px #3A2B23,
+                -1px -1px 1px #FBF7F3;
+    font-weight: bold;
+    font-size: 0.9em;
+    padding: 0.5em 1em;
+    border-radius: 0.5em;
+    box-shadow: 3px 3px 2px 0px #BFA383,
+                9px 7px 10px 2px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    user-select: none;
+    text-align: center;
+    left: -1em;
+    bottom: -2em;
+    transform: rotate(10deg);
+
+    &:hover {
+      transform: rotate(0deg);
+    }
+
+    &:active {
+      transform: rotate(0deg);
+    }
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    width: 100%;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+
+    transform: translateY(-200%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+
+    &.active {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .menu-item {
+      color: #3A2B23;
+      text-shadow: 1px 1px 1px #3A2B23, -1px -1px 1px #FBF7F3;
+      padding: 0.4em 0.8em;
+      text-align: center;
+      cursor: pointer;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 4px 4px 5px #BFA383, 10px 8px 12px rgba(0,0,0,0.5);
+      }
+      &:active {
+        transform: translateY(2px);
+      }
+    }
+  }
+
+  &.slide-ttb {
+    animation: slide-ttb 0.5s forwards;
+  }
+
+  @keyframes slide-ttb {
+    from {
+      transform: translateY(-200%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
 }
 
-/* 数据卡片容器样式 */
 .cards-container {
+  position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  gap: 20px;
-  flex-wrap: wrap;
-  margin-top: 60px;
-}
-
-/* 确保数据卡片大小一致，内容居中 */
-.summary-card {
-  width: 300px;
-  height: 200px;
-  padding: 20px;
-  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(0, 0, 0, 0.5);
-  border-radius: 8px;
-  background: transparent;
-  display: flex;
-  flex-direction: column;
-  /* flex: 1; */
   align-items: center;
-}
-
-.summary-card h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-/* 卡片内容样式 */
-.card-content {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 货币行样式 */
-.currencyName-row {
-  margin-bottom: 5px;
-}
-
-.currencyName-row .el-link {
-  font-size: inherit;
-}
-
-/* 平台数据行样式 */
-.platform-row {
-  margin-bottom: 5px;
-}
-
-/* 月份导航按钮容器 */
-.month-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin-top: 70px;
-}
-
-.month-navigation {
-  display: flex;
-  height: 50px;
-}
-
-.month-navigation .el-button {
+  flex-direction: row;
+  gap: 5%;
   width: 100%;
+
+  .mobile & {
+    flex-direction: column;
+    gap: 3em;
+  }
+
+  .card-container {
+    width: 350px;
+    height: 200px;
+
+    .mobile & {
+      width: 100%;
+    }
+
+    &.slide-ltr {
+      animation: slide-ltr 0.5s forwards;
+    }
+
+    &.slide-rtl {
+      animation: slide-rtl 0.5s forwards;
+    }
+
+    @keyframes slide-ltr {
+      from {
+        transform: translateX(-200%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slide-rtl {
+      from {
+        transform: translateX(200%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    .corner-tag {
+      position: absolute;
+      background: $image-ct_float-avif;
+      color: #3A2B23;
+      text-shadow: 1px 1px 1px #3A2B23,
+                  -1px -1px 1px #FBF7F3;
+      font-weight: bold;
+      font-size: 0.9em;
+      padding: 0.5em 1em;
+      border-radius: 0.5em;
+      box-shadow: 3px 3px 2px 0px #BFA383,
+                  9px 7px 10px 2px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      user-select: none;
+      text-align: center;
+    }
+
+    .corner-pre {
+      left: -1em;
+      top: -1em;
+      transform: rotate(-10deg);
+    }
+
+    .corner-next {
+      left: -1em;
+      bottom: -1em;
+      transform: rotate(10deg);
+    }
+
+    .corner-tag:hover {
+      transform: rotate(0deg);
+    }
+
+    .corner-tag:active {
+      transform: rotate(0deg);
+    }
+  }
+
+  .card-content.fade-in {
+    animation: fade-in 0.5s forwards;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .card-content.fade-out {
+    animation: fade-out 0.5s forwards;
+  }
+
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 }
 
-/* 增长情况图表容器样式 */
 .chart-container {
-  margin-top: 40px;
-  width: 100%;
+  margin-top: 60px;
+  width: auto;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
-  min-height: 300px;
   display: flex;
   justify-content: center;
-  align-items: center;
-}
+  // align-items: center;
 
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+  &.slide-btt {
+    animation: slide-btt 0.5s forwards;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  @keyframes slide-btt {
+    from {
+      transform: translateY(200%);
+    }
+    to {
+      transform: translateY(0);
+    }
   }
 }
 
-/* 鼠标指针隐藏 */
-body {
-  cursor: none;
-}
-
-#mouse-trail-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+.disabled {
   pointer-events: none;
-  z-index: 0;
+  opacity: 0;
 }
+
 </style>

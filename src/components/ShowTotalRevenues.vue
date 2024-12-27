@@ -7,6 +7,7 @@
     :before-close="handleClose"
     :modal-append-to-body="false"
     :fullscreen="false"
+    class="dialog-container"
   >
     <div class="table-container">
       <div class="table-row">

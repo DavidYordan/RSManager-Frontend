@@ -125,6 +125,11 @@
       <el-table-column prop="permissionName" label="抽佣类型"></el-table-column>
       <el-table-column prop="rate1" label="比率1"></el-table-column>
       <el-table-column prop="rate2" label="比率2"></el-table-column>
+      <el-table-column prop="status" label="是否启用">
+        <template #default="scope">
+          {{ scope.row.status ? '是' : '否' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="startDate" label="生效日期"></el-table-column>
       <el-table-column prop="endDate" label="结束日期"></el-table-column>
     </el-table>
@@ -207,7 +212,7 @@ export default {
       if (!userData.value || !userData.value.rolePermissionRelationshipDTOs) {
         return [];
       }
-      return userData.value.rolePermissionRelationshipDTOs.filter((item) => item.status);
+      return userData.value.rolePermissionRelationshipDTOs.filter((item) => [1, 2].includes(item.permissionId) && [4, 5, 6].includes(item.roleId));
     });
 
     const showDrawer = (data) => {

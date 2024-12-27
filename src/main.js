@@ -4,16 +4,17 @@ import App from './App.vue';
 import router from './router';
 import { createPinia } from 'pinia';
 
-import ElementPlus, { install } from 'element-plus';
+import ElementPlus from 'element-plus';
 // import * as ElIcons from '@element-plus/icons-vue';
 import 'element-plus/dist/index.css';
-// import '@/assets/css/global.scss';
+import '@/assets/styles/base.css';
+import '@/assets/styles/global.scss';
 
 import i18n from './i18n';
 
 // 引入 tsParticles Vue 组件
-// import Particles from '@tsparticles/vue3';
-// import { loadSlim } from "@tsparticles/slim";
+import Particles from '@tsparticles/vue3';
+import { loadSlim } from "@tsparticles/slim";
 
 
 // 导入 Element Plus 的语言包
@@ -31,22 +32,6 @@ const app = createApp(App);
 // 创建 Pinia 实例
 const pinia = createPinia();
 
-// let lastTrailTime = 0;
-// document.addEventListener('mousemove', (e) => {
-//   const now = Date.now();
-//   if (now - lastTrailTime < 50) return; // 限制 50ms 创建一次拖尾
-//   lastTrailTime = now;
-
-//   const trail = document.createElement('div');
-//   trail.className = 'mouse-trail';
-//   trail.style.left = `${e.clientX}px`;
-//   trail.style.top = `${e.clientY}px`;
-//   document.body.appendChild(trail);
-//   setTimeout(() => {
-//     trail.remove();
-//   }, 500);
-// });
-
 // 应用插件
 app.use(pinia);
 app.use(router);
@@ -58,9 +43,9 @@ function getElementPlusLocale(lang) {
     case 'zh-cn':
       return zhCNLocale;
     case 'zh-tw':
-      return zhTWLocale;
+      return zhCNLocale;
     default:
-      return enLocale;
+      return zhCNLocale;
   }
 }
 
@@ -69,14 +54,20 @@ app.use(ElementPlus, {
   locale: getElementPlusLocale(i18n.global.locale.value),
 });
 
-// app.use(Particles, {
-//   init: async (engine) => {
-//     await loadSlim(engine);
-//   },
-// });
+app.use(Particles, {
+  init: async (engine) => {
+    await loadSlim(engine);
+  },
+});
 
 // 导入并执行全局路由守卫
 import './permission.js';
+
+// const isMobile = window.innerWidth <= 768;
+// document.body.classList.add(isMobile ? 'mobile' : 'desktop');
+// 如果是屏幕小于等于 768px，给body添加一个 mobile 类
+const isMobile = window.innerWidth <= 768;
+document.body.classList.add(isMobile ? 'mobile' : 'desktop');
 
 app.mount('#app');
 

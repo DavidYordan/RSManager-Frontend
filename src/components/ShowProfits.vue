@@ -8,6 +8,7 @@
     :before-close="handleClose"
     :modal-append-to-body="false"
     :fullscreen="false"
+    class="dialog-container"
   >
     <div class="search-container" v-if="searchableFields.length">
       <el-form :inline="true" class="search-form" @submit.prevent>
@@ -251,9 +252,9 @@ defineExpose({
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .table-container {
-  max-height: 60vh; /* 与 tableMaxHeight 保持一致 */
+  max-height: 80%;
   overflow: auto;
 }
 

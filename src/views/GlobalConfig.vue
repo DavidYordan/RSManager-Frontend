@@ -891,8 +891,11 @@ export default {
     const updateRow = async (row) => {
       const requestData = [{
         regionCode: row.regionCode,
+        regionName: row.regionName,
         currencyCode: row.currencyCode,
+        currencyName: row.currencyName,
         projectId: row.projectId,
+        projectName: row.projectName,
         projectAmount: row.projectAmount,
       }];
 
