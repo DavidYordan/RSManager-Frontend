@@ -155,7 +155,7 @@
                     :placeholder="$t('enrollScholar.selectRegion')"
                   >
                     <el-option
-                      v-for="option in regionOptions"
+                      v-for="option in uniqueRegionOptions"
                       :key="option.regionCode"
                       :label="option.regionName"
                       :value="option.regionName"
@@ -1002,6 +1002,7 @@ export default {
 
     // 地区数据
     const regionOptions = ref([])
+    const uniqueRegionOptions = ref([]);
 
     // 货币选项
     const currencyNameOptions = ref([])
@@ -1084,7 +1085,7 @@ export default {
     /**
      * 获取所有类型数据（地区和项目名称）
      */
-     const loadAllTypes = async () => {
+    const loadAllTypes = async () => {
       try {
         const response = await apifetchAllRegions()
         if (response.data.success) {
@@ -1104,6 +1105,12 @@ export default {
 
           // 提取所有货币选项
           currencyNameOptions.value = [...new Set(data.map(region => region.currencyName))]
+
+          uniqueRegionOptions.value = [
+            ...new Map(
+              regionOptions.value.map(item => [item.regionName, item])
+            ).values(),
+          ];
 
           // 处理项目名称和金额映射
           data.forEach(region => {
@@ -1203,6 +1210,7 @@ export default {
       isFullnameLoading,
       fileError,
       regionOptions,
+      uniqueRegionOptions,
       roleOptions,
       computedRateOptions,
       projectOptions,
